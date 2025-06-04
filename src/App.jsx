@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -13,13 +13,129 @@ import {
   Filter, RotateCcw, Award, AlertTriangle, Brain, Timer, Crosshair,
   BarChart3, Gauge, Sparkles, MapPin, Users2, MessageSquare, Skull,
   Siren, Crown, Gift, CheckCircle, Circle, Pause, Play, MoreHorizontal,
-  Monitor, Laptop, Smartphone
+  Monitor, Laptop, Smartphone, Lock, Mail, EyeOff, LoaderCircle
 } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import * as Dialog from '@radix-ui/react-dialog';
 import { clsx } from 'clsx';
 
+// Authentication Context
+const AuthContext = createContext(null);
+
+// Authentication Provider
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const savedUser = localStorage.getItem('dota2_user');
+        const sessionExpiry = localStorage.getItem('dota2_session_expiry');
+        
+        if (savedUser && sessionExpiry) {
+          const now = new Date().getTime();
+          const expiry = parseInt(sessionExpiry);
+          
+          if (now < expiry) {
+            setUser(JSON.parse(savedUser));
+          } else {
+            // Session expired, clear storage
+            localStorage.removeItem('dota2_user');
+            localStorage.removeItem('dota2_session_expiry');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        localStorage.removeItem('dota2_user');
+        localStorage.removeItem('dota2_session_expiry');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  const login = async (credentials) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Mock authentication validation
+      if (!credentials.steamId || credentials.steamId.length < 3) {
+        throw new Error('Please enter a valid Steam ID');
+      }
+      
+      if (!credentials.password || credentials.password.length < 6) {
+        throw new Error('Password must be at least 6 characters');
+      }
+      
+      // Mock successful authentication
+      const userData = {
+        id: credentials.steamId,
+        steamId: credentials.steamId,
+        displayName: credentials.steamId.includes('pro') ? 'ProGamer_Elite' : 'PlayerX_ProGamer',
+        avatar: null,
+        joinDate: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      // Set session expiry (24 hours)
+      const expiryTime = new Date().getTime() + (24 * 60 * 60 * 1000);
+      
+      // Save to localStorage
+      localStorage.setItem('dota2_user', JSON.stringify(userData));
+      localStorage.setItem('dota2_session_expiry', expiryTime.toString());
+      
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const logout = () => {
+    setUser(null);
+    setError(null);
+    localStorage.removeItem('dota2_user');
+    localStorage.removeItem('dota2_session_expiry');
+  };
+  
+  const clearError = () => setError(null);
+  
+  return (
+    <AuthContext.Provider value={{
+      user,
+      isLoading,
+      error,
+      login,
+      logout,
+      clearError,
+      isAuthenticated: !!user
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// Custom hook to use auth context
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 // Animation variants
 const pageTransition = {
@@ -64,6 +180,7 @@ const AnimatedNumber = ({ value, duration = 1000, prefix = '', suffix = '' }) =>
 
 // Navigation Component
 const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenuOpen }) => {
+  const { user, logout } = useAuth();
   const navItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'matches', icon: Swords, label: 'Matches' },
@@ -72,6 +189,10 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
     { id: 'pro', icon: Trophy, label: 'Pro Scene' },
     { id: 'draft', icon: Users, label: 'Draft' }
   ];
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <>
@@ -110,22 +231,56 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
         </div>
 
         <div className="flex items-center space-x-4">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center space-x-3 bg-gray-800 rounded-lg px-4 py-2 cursor-pointer"
-          >
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-sm text-gray-300">PlayerX_ProGamer#1234</span>
-          </motion.div>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="p-2 text-gray-400 hover:text-white"
-          >
-            <Settings className="w-5 h-5" />
-          </motion.button>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center space-x-3 bg-gray-800 rounded-lg px-4 py-2 cursor-pointer"
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-300">{user?.displayName || 'Player'}</span>
+                  <span className="text-xs text-gray-500">#{user?.steamId || '12345'}</span>
+                </div>
+              </motion.div>
+            </Tooltip.Trigger>
+            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
+              View Profile
+            </Tooltip.Content>
+          </Tooltip.Root>
+          
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 text-gray-400 hover:text-white"
+              >
+                <Settings className="w-5 h-5" />
+              </motion.button>
+            </Tooltip.Trigger>
+            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
+              Settings
+            </Tooltip.Content>
+          </Tooltip.Root>
+          
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleLogout}
+                className="p-2 text-red-400 hover:text-red-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </motion.button>
+            </Tooltip.Trigger>
+            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
+              Logout
+            </Tooltip.Content>
+          </Tooltip.Root>
         </div>
       </nav>
 
@@ -180,13 +335,74 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
   );
 };
 
-// Login Page
-const LoginPage = ({ onLogin }) => {
+// Enhanced Login Page with Form
+const LoginPage = () => {
+  const { login, isLoading, error, clearError } = useAuth();
+  const [formData, setFormData] = useState({
+    steamId: '',
+    password: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear field-specific error when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+    
+    // Clear general error
+    if (error) {
+      clearError();
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.steamId.trim()) {
+      errors.steamId = 'Steam ID is required';
+    } else if (formData.steamId.length < 3) {
+      errors.steamId = 'Steam ID must be at least 3 characters';
+    }
+    
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    try {
+      await login(formData);
+    } catch (error) {
+      // Error is handled by the auth context
+      console.error('Login failed:', error.message);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden"
+      className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden p-4"
     >
       {/* Animated background elements */}
       <div className="absolute inset-0">
@@ -216,30 +432,162 @@ const LoginPage = ({ onLogin }) => {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="relative z-10 text-center"
+        className="relative z-10 w-full max-w-md"
       >
+        {/* Logo and Title */}
+        <div className="text-center mb-8">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
+          >
+            <Shield className="w-12 h-12 text-white" />
+          </motion.div>
+          
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Dota 2 Companion
+          </h1>
+          <p className="text-gray-400 text-lg">Your Ultimate Esports Companion</p>
+        </div>
+
+        {/* Login Form */}
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="w-32 h-32 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-2xl"
         >
-          <Shield className="w-20 h-20 text-white" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Global Error */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-center space-x-2"
+              >
+                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <span className="text-red-400 text-sm">{error}</span>
+              </motion.div>
+            )}
+
+            {/* Steam ID Field */}
+            <div>
+              <label htmlFor="steamId" className="block text-sm font-medium text-gray-300 mb-2">
+                Steam ID or Username
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  id="steamId"
+                  name="steamId"
+                  value={formData.steamId}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-4 py-3 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all ${
+                    formErrors.steamId ? 'border-red-500/50' : 'border-gray-600/50'
+                  }`}
+                  placeholder="Enter your Steam ID"
+                  disabled={isLoading}
+                />
+              </div>
+              {formErrors.steamId && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-red-400 text-sm mt-1"
+                >
+                  {formErrors.steamId}
+                </motion.p>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className={`w-full pl-10 pr-12 py-3 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all ${
+                    formErrors.password ? 'border-red-500/50' : 'border-gray-600/50'
+                  }`}
+                  placeholder="Enter your password"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-300" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-300" />
+                  )}
+                </button>
+              </div>
+              {formErrors.password && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-red-400 text-sm mt-1"
+                >
+                  {formErrors.password}
+                </motion.p>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <motion.button
+              type="submit"
+              disabled={isLoading}
+              whileHover={!isLoading ? { scale: 1.02 } : {}}
+              whileTap={!isLoading ? { scale: 0.98 } : {}}
+              className={`w-full py-3 px-4 rounded-lg font-semibold text-lg flex items-center justify-center space-x-3 transition-all shadow-lg ${
+                isLoading
+                  ? 'bg-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white'
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <LoaderCircle className="w-5 h-5 animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>
+                  <Gamepad2 className="w-5 h-5" />
+                  <span>Sign In</span>
+                </>
+              )}
+            </motion.button>
+          </form>
+
+          {/* Demo Credentials */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30"
+          >
+            <p className="text-gray-400 text-sm mb-2">Demo Credentials:</p>
+            <div className="text-xs text-gray-500 space-y-1">
+              <p>Steam ID: <span className="text-cyan-400">demo_user</span> or <span className="text-cyan-400">pro_player</span></p>
+              <p>Password: <span className="text-cyan-400">password123</span> (min 6 characters)</p>
+            </div>
+          </motion.div>
         </motion.div>
-        
-        <h1 className="text-5xl font-bold text-white mb-4">
-          Dota 2 Companion
-        </h1>
-        <p className="text-gray-400 mb-8 text-lg">Your Ultimate Esports Companion</p>
-        
-        <motion.button
-          whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(0, 212, 255, 0.3)" }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onLogin}
-          className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-8 py-4 rounded-lg font-semibold text-lg flex items-center space-x-3 mx-auto hover:from-blue-700 hover:to-cyan-600 transition-all shadow-lg"
-        >
-          <Gamepad2 className="w-6 h-6" />
-          <span>Sign in with Steam</span>
-        </motion.button>
       </motion.div>
     </motion.div>
   );
@@ -888,15 +1236,48 @@ const PlayerDashboard = () => {
   );
 };
 
-// Main App Component
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+// Loading Component
+const LoadingScreen = () => {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
+        >
+          <Shield className="w-10 h-10 text-white" />
+        </motion.div>
+        <h2 className="text-xl font-bold text-white mb-2">Loading Dota 2 Companion</h2>
+        <div className="flex items-center justify-center space-x-1">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              animate={{ scale: [1, 1.5, 1] }}
+              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+              className="w-2 h-2 bg-cyan-400 rounded-full"
+            />
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// Main App Content Component
+const AppContent = () => {
+  const { isAuthenticated, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -917,21 +1298,32 @@ export default function App() {
     }
   };
 
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={handleLogin} />;
+  if (!isAuthenticated) {
+    return <LoginPage />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Navigation 
-        currentPage={currentPage} 
-        setCurrentPage={setCurrentPage}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-      />
-      <AnimatePresence mode="wait">
-        {renderPage()}
-      </AnimatePresence>
-    </div>
+    <Tooltip.Provider>
+      <div className="min-h-screen bg-gray-900">
+        <Navigation 
+          currentPage={currentPage} 
+          setCurrentPage={setCurrentPage}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+        />
+        <AnimatePresence mode="wait">
+          {renderPage()}
+        </AnimatePresence>
+      </div>
+    </Tooltip.Provider>
+  );
+};
+
+// Main App Component with Auth Provider
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
