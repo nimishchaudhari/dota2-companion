@@ -117,7 +117,9 @@ const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
+      console.log('Processing Steam callback...');
       const userData = await authService.handleSteamCallback(urlParams);
+      console.log('Steam callback successful, userData:', userData);
       
       // Save to localStorage
       const authData = {
@@ -132,11 +134,14 @@ const AuthProvider = ({ children }) => {
       setUser(userData);
       setAuthMode('steam');
       
+      console.log('Authentication state updated successfully');
       return userData;
     } catch (error) {
+      console.error('Steam callback error:', error);
       setError(error.message);
       throw error;
     } finally {
+      console.log('Setting isLoading to false');
       setIsLoading(false);
     }
   }, []); // Empty dependency array since this function doesn't depend on any props/state
@@ -751,234 +756,12 @@ const LoginPage = () => {
   );
 };
 
-// Comprehensive Mock Data
-const mockData = {
-  // Enhanced Player Profile Data
-  profile: {
-    name: 'PlayerX_ProGamer',
-    rank: 'Immortal',
-    rankNumber: 1247,
-    mmr: 6250,
-    peakMmr: 6890,
-    behaviorScore: 9580,
-    accountLevel: 127,
-    dotaPlusTier: 'Master',
-    hoursPlayed: 3420,
-    avgSessionLength: 2.3,
-    preferredRegion: 'Europe West',
-    streakType: 'win',
-    streakCount: 7,
-    commends: 847,
-    reports: 23,
-    leaderboardPosition: 1247
-  },
-
-  // Session Data
-  todaySession: {
-    wins: 4,
-    losses: 1,
-    mmrChange: +75,
-    gamesUntilBehaviorUpdate: 12,
-    currentStreak: 3,
-    suggestBreak: false
-  },
-
-  // Enhanced MMR Data
-  mmrHistory: [
-    { date: 'Apr 20', mmr: 5800, solo: 5800, party: 5600, mode: 'solo' },
-    { date: 'Apr 25', mmr: 5950, solo: 5950, party: 5650, mode: 'solo' },
-    { date: 'May 1', mmr: 5900, solo: 5900, party: 5700, mode: 'party' },
-    { date: 'May 5', mmr: 6100, solo: 6100, party: 5750, mode: 'solo' },
-    { date: 'May 10', mmr: 6050, solo: 6050, party: 5800, mode: 'solo' },
-    { date: 'May 15', mmr: 6200, solo: 6200, party: 5850, mode: 'solo' },
-    { date: 'May 20', mmr: 6250, solo: 6250, party: 5900, mode: 'solo' },
-    { date: 'May 25', mmr: 6180, solo: 6180, party: 5920, mode: 'party' },
-    { date: 'May 30', mmr: 6250, solo: 6250, party: 5950, mode: 'solo' },
-    { date: 'Jun 4', mmr: 6250, solo: 6250, party: 5950, mode: 'solo' },
-  ],
-
-  // Performance Metrics
-  coreMetrics: [
-    { label: 'KDA Ratio', value: 2.84, trend: 'up', suffix: '', icon: Target, color: 'from-green-500 to-emerald-600' },
-    { label: 'CS/Min', value: 68.4, trend: 'up', suffix: '', icon: Coins, color: 'from-yellow-500 to-orange-600' },
-    { label: 'GPM', value: 612, trend: 'down', suffix: '', icon: TrendingUp, color: 'from-blue-500 to-cyan-600' },
-    { label: 'XPM', value: 689, trend: 'up', suffix: '', icon: Star, color: 'from-purple-500 to-pink-600' },
-    { label: 'Win Rate', value: 58.3, trend: 'up', suffix: '%', icon: Trophy, color: 'from-green-500 to-emerald-600' },
-    { label: 'Hero Damage/Min', value: 824, trend: 'up', suffix: '', icon: Crosshair, color: 'from-red-500 to-orange-600' },
-    { label: 'Tower Damage', value: 2847, trend: 'down', suffix: '', icon: Crown, color: 'from-indigo-500 to-purple-600' },
-    { label: 'Versatility Score', value: 7.2, trend: 'up', suffix: '/10', icon: Brain, color: 'from-teal-500 to-cyan-600' },
-  ],
-
-  // Advanced Metrics
-  advancedMetrics: {
-    consistency: 8.4,
-    comebackRate: 24,
-    throwRate: 12,
-    lateGameWinRate: 67,
-    firstBloodParticipation: 42,
-    avgGameDuration: 38.2
-  },
-
-  // Enhanced Hero Data with performance details
-  detailedHeroes: [
-    {
-      name: 'Shadow Fiend',
-      matches: 75,
-      winrate: 62,
-      kda: '8.2/3.1/6.4',
-      gpm: 687,
-      xpm: 712,
-      lastHits: 284,
-      performance: { fight: 85, farm: 92, push: 78, support: 45, versatility: 67 },
-      bestMatchups: [{ hero: 'Pudge', winrate: 89 }, { hero: 'Crystal Maiden', winrate: 84 }],
-      worstMatchups: [{ hero: 'Invoker', winrate: 32 }, { hero: 'Storm Spirit', winrate: 38 }],
-      favoriteItems: ['Black King Bar', 'Shadow Blade', 'Desolator'],
-      positions: { mid: 94, carry: 6 },
-      recentRecord: { wins: 8, losses: 4 }
-    },
-    {
-      name: 'Anti-Mage',
-      matches: 68,
-      winrate: 58,
-      kda: '7.8/2.9/4.2',
-      gpm: 734,
-      xpm: 665,
-      lastHits: 312,
-      performance: { fight: 72, farm: 96, push: 88, support: 25, versatility: 45 },
-      bestMatchups: [{ hero: 'Invoker', winrate: 78 }, { hero: 'Storm Spirit', winrate: 71 }],
-      worstMatchups: [{ hero: 'Ursa', winrate: 28 }, { hero: 'Lifestealer', winrate: 34 }],
-      favoriteItems: ['Battle Fury', 'Manta Style', 'Heart of Tarrasque'],
-      positions: { carry: 100 },
-      recentRecord: { wins: 5, losses: 3 }
-    },
-    {
-      name: 'Invoker',
-      matches: 42,
-      winrate: 71,
-      kda: '9.1/3.8/8.7',
-      gpm: 598,
-      xpm: 689,
-      lastHits: 201,
-      performance: { fight: 88, farm: 76, push: 72, support: 68, versatility: 94 },
-      bestMatchups: [{ hero: 'Anti-Mage', winrate: 82 }, { hero: 'Phantom Assassin', winrate: 79 }],
-      worstMatchups: [{ hero: 'Storm Spirit', winrate: 45 }, { hero: 'Queen of Pain', winrate: 48 }],
-      favoriteItems: ['Aghanim\'s Scepter', 'Black King Bar', 'Refresher Orb'],
-      positions: { mid: 100 },
-      recentRecord: { wins: 7, losses: 2 }
-    }
-  ],
-
-  // Rich Match History
-  detailedMatches: [
-    {
-      id: 1,
-      hero: 'Shadow Fiend',
-      result: 'Victory',
-      kda: '12/3/8',
-      gpm: 687,
-      xpm: 712,
-      duration: '38:42',
-      mode: 'Ranked Solo',
-      skillBracket: 'Very High Skill',
-      avgMmr: 6180,
-      impactScore: 'MVP',
-      laneOutcome: 'Won',
-      partySize: 1,
-      radiantSide: true,
-      team: [
-        { hero: 'Shadow Fiend', player: 'You', pos: 2 },
-        { hero: 'Pudge', player: 'Tank_Master', pos: 5 },
-        { hero: 'Anti-Mage', player: 'Carry_God', pos: 1 },
-        { hero: 'Invoker', player: 'Magic_Pro', pos: 3 },
-        { hero: 'Crystal Maiden', player: 'Support_Queen', pos: 4 }
-      ],
-      enemyTeam: [
-        { hero: 'Storm Spirit', player: 'Lightning_Fast', pos: 2 },
-        { hero: 'Axe', player: 'Axe_Wielder', pos: 3 },
-        { hero: 'Phantom Assassin', player: 'Crit_Lord', pos: 1 },
-        { hero: 'Lion', player: 'Finger_Death', pos: 5 },
-        { hero: 'Enigma', player: 'Black_Hole', pos: 4 }
-      ],
-      keyStats: { healed: 0, heroDmg: 32847, towerDmg: 4921, fantasyPoints: 18.7 }
-    },
-    {
-      id: 2,
-      hero: 'Anti-Mage',
-      result: 'Defeat',
-      kda: '8/7/3',
-      gpm: 634,
-      xpm: 598,
-      duration: '45:18',
-      mode: 'Ranked Solo',
-      skillBracket: 'Very High Skill',
-      avgMmr: 6205,
-      impactScore: 'Good',
-      laneOutcome: 'Drew',
-      partySize: 1,
-      radiantSide: false,
-      team: [
-        { hero: 'Anti-Mage', player: 'You', pos: 1 },
-        { hero: 'Queen of Pain', player: 'Pain_Dealer', pos: 2 },
-        { hero: 'Centaur Warrunner', player: 'Tank_Horse', pos: 3 },
-        { hero: 'Dazzle', player: 'Grave_Saver', pos: 5 },
-        { hero: 'Rubick', player: 'Spell_Steal', pos: 4 }
-      ],
-      enemyTeam: [
-        { hero: 'Phantom Assassin', player: 'Crit_Master', pos: 1 },
-        { hero: 'Invoker', player: 'Spell_Caster', pos: 2 },
-        { hero: 'Pudge', player: 'Hook_King', pos: 4 },
-        { hero: 'Tidehunter', player: 'Wave_Maker', pos: 3 },
-        { hero: 'Crystal Maiden', player: 'Ice_Queen', pos: 5 }
-      ],
-      keyStats: { healed: 0, heroDmg: 28934, towerDmg: 6821, fantasyPoints: 14.2 }
-    }
-  ],
-
-  // Performance Patterns
-  patterns: {
-    timePerformance: [
-      { hour: '6AM', winrate: 45, games: 12 },
-      { hour: '12PM', winrate: 62, games: 89 },
-      { hour: '6PM', winrate: 71, games: 234 },
-      { hour: '12AM', winrate: 52, games: 156 }
-    ],
-    dayPerformance: [
-      { day: 'Mon', winrate: 48, games: 89, mmrChange: -45 },
-      { day: 'Tue', winrate: 62, games: 76, mmrChange: 23 },
-      { day: 'Wed', winrate: 71, games: 92, mmrChange: 67 },
-      { day: 'Thu', winrate: 58, games: 84, mmrChange: 12 },
-      { day: 'Fri', winrate: 69, games: 94, mmrChange: 89 },
-      { day: 'Sat', winrate: 55, games: 124, mmrChange: -12 },
-      { day: 'Sun', winrate: 51, games: 98, mmrChange: -23 }
-    ],
-    roleProficiency: [
-      { role: 'Carry', games: 421, winrate: 64, preference: 35 },
-      { role: 'Mid', games: 634, winrate: 62, preference: 45 },
-      { role: 'Offlane', games: 234, winrate: 48, preference: 12 },
-      { role: 'Support', games: 187, winrate: 58, preference: 8 }
-    ]
-  },
-
-  // Goals and Achievements
-  goals: {
-    weekly: [
-      { name: 'Maintain 65%+ winrate', progress: 78, target: 100, type: 'winrate' },
-      { name: 'Average 70+ CS/min', progress: 68, target: 70, type: 'farming' },
-      { name: 'Play 3+ different heroes', progress: 2, target: 3, type: 'diversity' }
-    ],
-    achievements: [
-      { name: '10 Game Win Streak', date: '2024-05-28', rarity: 'rare' },
-      { name: 'Rampage', date: '2024-05-15', rarity: 'epic' },
-      { name: 'Perfect KDA Game', date: '2024-04-22', rarity: 'legendary' }
-    ]
-  }
-};
 
 // Utility function for better class handling
 const cn = (...classes) => clsx(classes);
 
-// Player Dashboard
-const PlayerDashboard = () => {
+// Professional Command Center Dashboard
+const CommandCenterDashboard = () => {
   const { user } = useAuth();
   const { 
     recentMatches, 
@@ -990,13 +773,124 @@ const PlayerDashboard = () => {
     isLoading
   } = useData();
   
-  const [activeTab, setActiveTab] = useState('overview');
+  // Command Center State Management (Future Feature Placeholders)
+  const [CURRENT_FOCUS, SET_CURRENT_FOCUS] = useState('overview');
+  const [LAYOUT_MODE, SET_LAYOUT_MODE] = useState('command'); // command, analysis, focus
+  const [ALERT_LEVEL, SET_ALERT_LEVEL] = useState('normal'); // normal, warning, danger, flow
 
-  // Transform API data to dashboard format
+  // Professional Analytics Calculations
   const todaySession = useMemo(() => {
     if (!recentMatches) return { wins: 0, losses: 0, mmrChange: 0, currentStreak: 0, gamesUntilBehaviorUpdate: 15 };
     return calculateTodaySession(recentMatches);
   }, [recentMatches]);
+
+  // Tilt-O-Meter™ Calculation
+  const tiltMeter = useMemo(() => {
+    if (!recentMatches || recentMatches.length < 3) return { level: 0, status: 'stable', message: 'Not enough data' };
+    
+    const last10Games = recentMatches.slice(0, 10);
+    const recentPerformance = last10Games.reduce((acc, match, index) => {
+      const weight = 1 - (index * 0.1); // Recent games weighted more
+      const kda = (match.kills + match.assists) / Math.max(match.deaths, 1);
+      const gpm = match.gold_per_min || 0;
+      const xpm = match.xp_per_min || 0;
+      
+      acc.kdaScore += (kda > 2 ? 1 : kda < 1 ? -1 : 0) * weight;
+      acc.farmScore += (gpm > 400 ? 1 : gpm < 300 ? -1 : 0) * weight;
+      acc.experienceScore += (xpm > 500 ? 1 : xpm < 400 ? -1 : 0) * weight;
+      acc.gameResults += (match.radiant_win === match.player_slot < 128 ? 1 : -1) * weight;
+      
+      return acc;
+    }, { kdaScore: 0, farmScore: 0, experienceScore: 0, gameResults: 0 });
+    
+    const tiltScore = Math.max(0, Math.min(100, 50 + (
+      recentPerformance.kdaScore * 10 + 
+      recentPerformance.farmScore * 8 + 
+      recentPerformance.experienceScore * 7 + 
+      recentPerformance.gameResults * 15
+    )));
+    
+    let status, message;
+    if (tiltScore >= 80) {
+      status = 'flow';
+      message = 'IN THE ZONE! Keep playing!';
+    } else if (tiltScore >= 60) {
+      status = 'good';
+      message = 'Playing well, maintain focus';
+    } else if (tiltScore >= 40) {
+      status = 'neutral';
+      message = 'Stable performance';
+    } else if (tiltScore >= 20) {
+      status = 'warning';
+      message = 'Consider taking a break';
+    } else {
+      status = 'danger';
+      message = 'STOP PLAYING NOW!';
+    }
+    
+    return { level: Math.round(tiltScore), status, message };
+  }, [recentMatches]);
+
+  // Performance Efficiency Index (PEI)
+  const performanceIndex = useMemo(() => {
+    if (!recentMatches || !winLoss) return { score: 50, grade: 'C', trend: 'stable' };
+    
+    const recent20 = recentMatches.slice(0, 20);
+    if (recent20.length < 5) return { score: 50, grade: 'C', trend: 'stable' };
+    
+    const metrics = recent20.reduce((acc, match) => {
+      const kda = (match.kills + match.assists) / Math.max(match.deaths, 1);
+      const gpm = match.gold_per_min || 0;
+      const xpm = match.xp_per_min || 0;
+      const duration = match.duration || 1800; // 30 min default
+      const isWin = match.radiant_win === (match.player_slot < 128);
+      
+      acc.kdaTotal += Math.min(kda, 10); // Cap KDA at 10
+      acc.gpmTotal += Math.min(gpm, 1000); // Cap GPM at 1000
+      acc.xpmTotal += Math.min(xpm, 1000); // Cap XPM at 1000
+      acc.winRate += isWin ? 1 : 0;
+      acc.avgDuration += duration;
+      
+      return acc;
+    }, { kdaTotal: 0, gpmTotal: 0, xpmTotal: 0, winRate: 0, avgDuration: 0 });
+    
+    const avgKDA = metrics.kdaTotal / recent20.length;
+    const avgGPM = metrics.gpmTotal / recent20.length;
+    const avgXPM = metrics.xpmTotal / recent20.length;
+    const winRate = (metrics.winRate / recent20.length) * 100;
+    
+    // Weighted scoring system
+    const score = Math.round(
+      (avgKDA / 4) * 25 + // KDA worth 25%
+      (avgGPM / 600) * 20 + // GPM worth 20%
+      (avgXPM / 700) * 15 + // XPM worth 15%
+      (winRate / 100) * 40 // Win rate worth 40%
+    );
+    
+    let grade;
+    if (score >= 90) grade = 'S+';
+    else if (score >= 85) grade = 'S';
+    else if (score >= 80) grade = 'A+';
+    else if (score >= 75) grade = 'A';
+    else if (score >= 70) grade = 'B+';
+    else if (score >= 65) grade = 'B';
+    else if (score >= 60) grade = 'C+';
+    else if (score >= 55) grade = 'C';
+    else if (score >= 50) grade = 'D';
+    else grade = 'F';
+    
+    // Calculate trend
+    const firstHalf = recent20.slice(10, 20);
+    const secondHalf = recent20.slice(0, 10);
+    const firstScore = firstHalf.reduce((acc, match) => acc + (match.radiant_win === (match.player_slot < 128) ? 1 : 0), 0);
+    const secondScore = secondHalf.reduce((acc, match) => acc + (match.radiant_win === (match.player_slot < 128) ? 1 : 0), 0);
+    
+    let trend = 'stable';
+    if (secondScore > firstScore + 1) trend = 'improving';
+    else if (firstScore > secondScore + 1) trend = 'declining';
+    
+    return { score: Math.min(100, Math.max(0, score)), grade, trend };
+  }, [recentMatches, winLoss]);
 
   const coreMetrics = useMemo(() => {
     if (!recentMatches && !winLoss) return getDefaultMetrics();
@@ -1026,601 +920,505 @@ const PlayerDashboard = () => {
         initial="initial"
         animate="animate"
         exit="exit"
-        className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+        className="min-h-screen bg-space-black relative overflow-hidden"
       >
-        {/* Main Container - Optimized for PC screens */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-6 max-w-[1920px]">
-          {/* Dashboard Tabs for better organization on PC */}
-          <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <Tabs.List className="flex space-x-1 bg-gray-800/50 backdrop-blur-sm rounded-xl p-1 mb-8 border border-gray-700/50 shadow-xl">
-              {[
-                { value: 'overview', label: 'Overview', icon: Home },
-                { value: 'performance', label: 'Performance', icon: BarChart3 },
-                { value: 'heroes', label: 'Heroes', icon: Shield },
-                { value: 'matches', label: 'Matches', icon: Swords },
-                { value: 'insights', label: 'Insights', icon: Brain }
-              ].map((tab) => (
-                <Tabs.Trigger
-                  key={tab.value}
-                  value={tab.value}
-                  className={cn(
-                    "flex-1 flex items-center justify-center space-x-2 px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50",
-                    activeTab === tab.value
-                      ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg transform scale-105"
-                      : "text-gray-400 hover:text-white hover:bg-gray-700/50"
-                  )}
+        {/* Command Center Background Effects */}
+        <div className="fixed inset-0 bg-gradient-to-br from-space-black via-space-dark to-space-black"></div>
+        
+        {/* Top Command Bar */}
+        <div className="relative z-50 glass-card border-b-2 border-electric-cyan/30 rounded-none backdrop-blur-xl">
+          <div className="max-w-[2560px] mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              {/* Command Center Logo */}
+              <div className="flex items-center space-x-4">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-lg flex items-center justify-center relative"
                 >
-                  <tab.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </Tabs.Trigger>
-              ))}
-            </Tabs.List>
-
-            {/* Overview Tab */}
-            <Tabs.Content value="overview" className="space-y-8">
-              {/* Session Tracker Widget - Enhanced for PC */}
-              <motion.div
-                variants={cardAnimation}
-                className="bg-gradient-to-r from-cyan-500/10 via-blue-600/10 to-purple-600/10 border border-cyan-500/20 rounded-2xl p-6 shadow-2xl backdrop-blur-sm"
-              >
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
-                    <div className="text-center lg:text-left">
-                      <p className="text-cyan-400 text-sm font-medium mb-1">Today's Session</p>
-                      {loading.matches ? (
-                        <div className="animate-pulse">
-                          <div className="h-8 bg-gray-700 rounded w-20 mx-auto lg:mx-0 mb-1"></div>
-                          <div className="h-3 bg-gray-700 rounded w-16 mx-auto lg:mx-0"></div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-white text-2xl lg:text-3xl font-bold">
-                            {todaySession.wins}W - {todaySession.losses}L
-                          </p>
-                          <p className="text-gray-400 text-xs">
-                            Win Rate: {todaySession.wins + todaySession.losses > 0 ? 
-                              Math.round((todaySession.wins / (todaySession.wins + todaySession.losses)) * 100) : 0}%
-                          </p>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-center lg:text-left">
-                      <p className="text-cyan-400 text-sm font-medium mb-1">MMR Change</p>
-                      {loading.matches ? (
-                        <div className="animate-pulse">
-                          <div className="h-8 bg-gray-700 rounded w-16 mx-auto lg:mx-0 mb-1"></div>
-                          <div className="h-3 bg-gray-700 rounded w-20 mx-auto lg:mx-0"></div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className={cn(
-                            "text-2xl lg:text-3xl font-bold flex items-center justify-center lg:justify-start",
-                            todaySession.mmrChange > 0 ? 'text-green-400' : todaySession.mmrChange < 0 ? 'text-red-400' : 'text-gray-400'
-                          )}>
-                            {todaySession.mmrChange > 0 ? (
-                              <ArrowUp className="w-5 h-5 mr-1" />
-                            ) : todaySession.mmrChange < 0 ? (
-                              <ArrowDown className="w-5 h-5 mr-1" />
-                            ) : (
-                              <Minus className="w-5 h-5 mr-1" />
-                            )}
-                            {Math.abs(todaySession.mmrChange)}
-                          </p>
-                          <p className="text-gray-400 text-xs">Today's progress</p>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-center lg:text-left">
-                      <p className="text-cyan-400 text-sm font-medium mb-1">Current Streak</p>
-                      {loading.matches ? (
-                        <div className="animate-pulse">
-                          <div className="h-8 bg-gray-700 rounded w-12 mx-auto lg:mx-0 mb-1"></div>
-                          <div className="h-3 bg-gray-700 rounded w-16 mx-auto lg:mx-0"></div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-white text-2xl lg:text-3xl font-bold flex items-center justify-center lg:justify-start">
-                            <Flame className="w-6 h-6 mr-2 text-orange-400" />
-                            {todaySession.currentStreak}
-                          </p>
-                          <p className="text-gray-400 text-xs">
-                            {todaySession.currentStreak > 0 ? 'Win streak' : 'Games today'}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-center lg:text-left">
-                      <p className="text-cyan-400 text-sm font-medium mb-1">Behavior Update</p>
-                      {loading.matches ? (
-                        <div className="animate-pulse">
-                          <div className="h-8 bg-gray-700 rounded w-8 mx-auto lg:mx-0 mb-1"></div>
-                          <div className="h-3 bg-gray-700 rounded w-20 mx-auto lg:mx-0"></div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-white text-2xl lg:text-3xl font-bold">{todaySession.gamesUntilBehaviorUpdate}</p>
-                          <p className="text-gray-400 text-xs">Games remaining</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Quick Actions for PC */}
-                  <div className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2">
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <button className="p-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-lg transition-all duration-200 hover:scale-105">
-                          <Play className="w-5 h-5 text-green-400" />
-                        </button>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content className="bg-gray-800 text-white px-2 py-1 rounded text-sm">
-                        Find Match
-                      </Tooltip.Content>
-                    </Tooltip.Root>
-                    
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <button className="p-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg transition-all duration-200 hover:scale-105">
-                          <BarChart3 className="w-5 h-5 text-blue-400" />
-                        </button>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content className="bg-gray-800 text-white px-2 py-1 rounded text-sm">
-                        Detailed Stats
-                      </Tooltip.Content>
-                    </Tooltip.Root>
-                  </div>
+                  <Shield className="w-8 h-8 text-white" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-lg opacity-30 animate-pulse"></div>
+                </motion.div>
+                <div>
+                  <h1 className="command-header text-2xl">DOTA 2 COMMAND CENTER</h1>
+                  <p className="text-electric-cyan/60 text-sm font-mono">PROFESSIONAL ESPORTS ANALYTICS</p>
                 </div>
-              </motion.div>
-
-              {/* Enhanced Player Profile - PC Optimized */}
-              <motion.div
-                variants={cardAnimation}
-                className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 shadow-2xl backdrop-blur-sm"
-              >
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                  {/* Profile Avatar and Basic Info */}
-                  <div className="flex flex-col items-center xl:items-start space-y-4">
-                    <motion.div
-                      whileHover={{ scale: 1.05, rotate: 2 }}
-                      className="relative w-32 h-32 lg:w-40 lg:h-40"
-                    >
-                      <div className="w-full h-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
-                        <User className="w-16 h-16 lg:w-20 lg:h-20 text-white" />
-                      </div>
-                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full border-2 border-gray-800 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                    </motion.div>
-                    
-                    <div className="text-center xl:text-left">
-                      <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">
-                        {user?.personaName || user?.profile?.personaname || 'Player'}
-                      </h2>
-                      <div className="flex items-center justify-center xl:justify-start space-x-3 mb-4">
-                        <Trophy className="w-6 h-6 text-yellow-400" />
-                        <span className="text-xl text-yellow-400 font-semibold">
-                          {getRankName(user?.rank?.tier || user?.rank_tier) || 'Unranked'}
-                        </span>
-                        {user?.rank?.leaderboard || user?.leaderboard_rank ? (
-                          <span className="text-gray-400">#{user?.rank?.leaderboard || user?.leaderboard_rank}</span>
-                        ) : null}
-                      </div>
-                      
-                      {/* Streak Badge */}
-                      {todaySession.currentStreak > 0 ? (
-                        <div className="inline-flex items-center bg-green-500/20 border border-green-500/30 px-4 py-2 rounded-full">
-                          <ArrowUp className="w-4 h-4 text-green-400 mr-2" />
-                          <span className="text-green-400 font-medium">{todaySession.currentStreak} Win Streak</span>
-                        </div>
-                      ) : todaySession.losses > 0 ? (
-                        <div className="inline-flex items-center bg-red-500/20 border border-red-500/30 px-4 py-2 rounded-full">
-                          <ArrowDown className="w-4 h-4 text-red-400 mr-2" />
-                          <span className="text-red-400 font-medium">No Active Streak</span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center bg-gray-500/20 border border-gray-500/30 px-4 py-2 rounded-full">
-                          <Minus className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-gray-400 font-medium">No Games Today</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Core Stats Grid */}
-                  <div className="xl:col-span-2">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                      {(() => {
-                        const stats = [
-                          { 
-                            label: 'Current MMR', 
-                            value: user?.mmr?.solo || user?.mmr?.estimate || user?.solo_competitive_rank || 'N/A', 
-                            icon: Star, 
-                            color: 'cyan' 
-                          },
-                          { 
-                            label: 'Total Games', 
-                            value: winLoss ? winLoss.win + winLoss.lose : 'N/A', 
-                            icon: TrendingUp, 
-                            color: 'green' 
-                          },
-                          { 
-                            label: 'Plus Subscriber', 
-                            value: user?.profile?.plus ? 'Yes' : 'No', 
-                            icon: Heart, 
-                            color: user?.profile?.plus ? 'green' : 'gray',
-                            isText: true 
-                          },
-                          { 
-                            label: 'Cheese Count', 
-                            value: user?.profile?.cheese || 0, 
-                            icon: Award, 
-                            color: 'yellow' 
-                          },
-                          { 
-                            label: 'Win Rate', 
-                            value: winLoss && (winLoss.win + winLoss.lose) > 0 ? 
-                              `${((winLoss.win / (winLoss.win + winLoss.lose)) * 100).toFixed(1)}%` : 'N/A',
-                            icon: Trophy, 
-                            color: 'green',
-                            isText: true 
-                          },
-                          { 
-                            label: 'Recent Wins', 
-                            value: winLoss?.win || 0, 
-                            icon: CheckCircle, 
-                            color: 'green' 
-                          },
-                          { 
-                            label: 'Recent Losses', 
-                            value: winLoss?.lose || 0, 
-                            icon: X, 
-                            color: 'red' 
-                          },
-                          { 
-                            label: 'Account ID', 
-                            value: user?.accountId || 'N/A', 
-                            icon: MapPin, 
-                            color: 'blue', 
-                            isText: true 
-                          },
-                        ];
-
-                        return stats.map((stat, index) => (
-                          <Tooltip.Root key={index}>
-                            <Tooltip.Trigger asChild>
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                className="bg-gray-700/30 backdrop-blur-sm rounded-xl p-4 border border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <p className="text-gray-400 text-xs font-medium">{stat.label}</p>
-                                  <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
-                                </div>
-                                {loading.stats && (stat.label.includes('Win') || stat.label.includes('Games')) ? (
-                                  <div className="animate-pulse">
-                                    <div className="h-6 bg-gray-700 rounded w-12"></div>
-                                  </div>
-                                ) : (
-                                  <p className={`text-lg lg:text-xl font-bold text-${stat.color}-400`}>
-                                    {stat.isText ? stat.value : (
-                                      typeof stat.value === 'number' ? 
-                                        <AnimatedNumber value={stat.value} /> : 
-                                        stat.value
-                                    )}
-                                  </p>
-                                )}
-                              </motion.div>
-                            </Tooltip.Trigger>
-                            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
-                              {stat.label} Details
-                            </Tooltip.Content>
-                          </Tooltip.Root>
-                        ));
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Performance Metrics Dashboard */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                {coreMetrics.slice(0, 4).map((metric, index) => {
-                  // Map icon names to components
-                  const IconComponent = metric.icon === 'Target' ? Target :
-                                       metric.icon === 'Trophy' ? Trophy :
-                                       metric.icon === 'Coins' ? Coins :
-                                       metric.icon === 'Star' ? Star :
-                                       Target; // default
-                  
-                  return (
-                    <motion.div
-                      key={index}
-                      variants={cardAnimation}
-                      whileHover={{ scale: 1.02, y: -5 }}
-                      className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 rounded-2xl p-6 border border-gray-700/40 shadow-xl backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-300"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${metric.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                          <IconComponent className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          {metric.trend === 'up' && <ArrowUp className="w-4 h-4 text-green-400" />}
-                          {metric.trend === 'down' && <ArrowDown className="w-4 h-4 text-red-400" />}
-                          {metric.trend === 'same' && <Minus className="w-4 h-4 text-gray-400" />}
-                        </div>
-                      </div>
-                      <p className="text-gray-400 text-sm font-medium mb-2">{metric.label}</p>
-                      {isLoading ? (
-                        <div className="animate-pulse">
-                          <div className="h-8 bg-gray-700 rounded w-16 mb-1"></div>
-                          <div className="h-3 bg-gray-700 rounded w-20"></div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-2xl lg:text-3xl font-bold text-white mb-1">
-                            {typeof metric.value === 'number' ? (
-                              <AnimatedNumber value={metric.value} suffix={metric.suffix || ''} />
-                            ) : (
-                              metric.value
-                            )}
-                          </p>
-                          <p className={`text-xs font-medium ${
-                            metric.trend === 'up' ? 'text-green-400' : 
-                            metric.trend === 'down' ? 'text-red-400' : 'text-gray-400'
-                          }`}>
-                            {metric.trend === 'up' ? '↗ Improving' : 
-                             metric.trend === 'down' ? '↘ Declining' : '→ Stable'}
-                          </p>
-                        </>
-                      )}
-                    </motion.div>
-                  );
-                })}
               </div>
-            </Tabs.Content>
 
-            {/* Performance Tab */}
-            <Tabs.Content value="performance" className="space-y-8">
-              {/* Advanced Metrics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {mockData.coreMetrics.map((metric, index) => (
+              {/* Real-Time Performance Indicators */}
+              <div className="flex items-center space-x-6">
+                {/* Tilt-O-Meter */}
+                <div className="glass-card px-4 py-2 border border-electric-cyan/20">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-xs font-mono text-electric-cyan/80 uppercase tracking-wider">Tilt Meter</div>
+                    <div className={cn(
+                      "px-3 py-1 rounded-full text-xs font-bold",
+                      tiltMeter.status === 'flow' && "bg-mental-flow/20 text-mental-flow border border-mental-flow/50",
+                      tiltMeter.status === 'good' && "bg-mental-focused/20 text-mental-focused border border-mental-focused/50",
+                      tiltMeter.status === 'neutral' && "bg-mental-neutral/20 text-mental-neutral border border-mental-neutral/50",
+                      tiltMeter.status === 'warning' && "bg-mental-tilting/20 text-mental-tilting border border-mental-tilting/50 animate-pulse",
+                      tiltMeter.status === 'danger' && "bg-mental-danger/20 text-mental-danger border border-mental-danger/50 tilt-warning"
+                    )}>
+                      {tiltMeter.level}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Performance Grade */}
+                <div className="glass-card px-4 py-2 border border-electric-cyan/20">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-xs font-mono text-electric-cyan/80 uppercase tracking-wider">PEI Grade</div>
+                    <div className={cn(
+                      "px-3 py-1 rounded-full text-sm font-bold font-futuristic",
+                      performanceIndex.grade.startsWith('S') && "bg-performance-excellent/20 text-performance-excellent border border-performance-excellent/50",
+                      performanceIndex.grade.startsWith('A') && "bg-performance-good/20 text-performance-good border border-performance-good/50",
+                      performanceIndex.grade.startsWith('B') && "bg-performance-average/20 text-performance-average border border-performance-average/50",
+                      performanceIndex.grade.startsWith('C') && "bg-performance-poor/20 text-performance-poor border border-performance-poor/50",
+                      (performanceIndex.grade === 'D' || performanceIndex.grade === 'F') && "bg-performance-terrible/20 text-performance-terrible border border-performance-terrible/50"
+                    )}>
+                      {performanceIndex.grade}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Session Status */}
+                <div className="glass-card px-4 py-2 border border-electric-cyan/20">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-xs font-mono text-electric-cyan/80 uppercase tracking-wider">Session</div>
+                    <div className="text-electric-cyan font-mono font-bold">
+                      {todaySession.wins}W-{todaySession.losses}L
+                    </div>
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      todaySession.mmrChange > 0 && "bg-neon-green animate-pulse",
+                      todaySession.mmrChange < 0 && "bg-neon-red animate-pulse",
+                      todaySession.mmrChange === 0 && "bg-electric-cyan/50"
+                    )}></div>
+                  </div>
+                </div>
+
+                {/* Player Profile Quick */}
+                <div className="glass-card px-4 py-2 border border-electric-cyan/20">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-rank-immortal to-rank-divine rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-header text-white">
+                        {user?.personaName || user?.profile?.personaname || 'OPERATIVE'}
+                      </div>
+                      <div className="text-xs font-mono text-electric-cyan/60">
+                        {getRankName(user?.rank?.tier || user?.rank_tier) || 'UNRANKED'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Command Center Layout */}
+        <div className="relative z-40 max-w-[2560px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-[calc(100vh-140px)]">
+          
+          {/* Left Panel - Primary Analytics */}
+          <div className="xl:col-span-8 col-span-1 space-y-6">
+            
+            {/* Session Health Monitor */}
+            <motion.div
+              variants={cardAnimation}
+              className="glass-card p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="command-header text-lg">SESSION HEALTH MONITOR</h2>
+                <div className="flex items-center space-x-2">
+                  <div className={cn(
+                    "w-3 h-3 rounded-full animate-pulse",
+                    tiltMeter.status === 'flow' && "bg-neon-green",
+                    tiltMeter.status === 'good' && "bg-electric-cyan",
+                    tiltMeter.status === 'neutral' && "bg-neon-yellow",
+                    tiltMeter.status === 'warning' && "bg-performance-poor",
+                    tiltMeter.status === 'danger' && "bg-neon-red"
+                  )}></div>
+                  <span className="text-xs font-mono text-electric-cyan/80 uppercase">
+                    {tiltMeter.status.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 py-4">
+                {/* Tilt-O-Meter */}
+                <div className="text-center">
+                  <div className="text-xs font-mono text-electric-cyan/60 mb-2 uppercase tracking-wider">Tilt-O-Meter™</div>
+                  <div className={cn(
+                    "relative w-16 h-16 mx-auto rounded-full border-4 flex items-center justify-center",
+                    tiltMeter.status === 'flow' && "border-mental-flow text-mental-flow",
+                    tiltMeter.status === 'good' && "border-mental-focused text-mental-focused",
+                    tiltMeter.status === 'neutral' && "border-mental-neutral text-mental-neutral",
+                    tiltMeter.status === 'warning' && "border-mental-tilting text-mental-tilting animate-pulse",
+                    tiltMeter.status === 'danger' && "border-mental-danger text-mental-danger tilt-warning"
+                  )}>
+                    <span className="stat-number text-lg">{tiltMeter.level}</span>
+                  </div>
+                  <div className="text-xxs text-electric-cyan/50 mt-1">{tiltMeter.message}</div>
+                </div>
+
+                {/* MMR Velocity */}
+                <div className="text-center">
+                  <div className="text-xs font-mono text-electric-cyan/60 mb-2 uppercase tracking-wider">MMR Velocity</div>
+                  <div className="text-2xl stat-number text-electric-cyan">
+                    {todaySession.mmrChange > 0 ? '+' : ''}{todaySession.mmrChange}
+                  </div>
+                  <div className="text-xxs text-electric-cyan/50 mt-1">Per Session</div>
+                </div>
+
+                {/* Performance Index */}
+                <div className="text-center">
+                  <div className="text-xs font-mono text-electric-cyan/60 mb-2 uppercase tracking-wider">PEI Score</div>
+                  <div className={cn(
+                    "text-2xl stat-number",
+                    performanceIndex.score >= 80 && "text-performance-excellent",
+                    performanceIndex.score >= 60 && performanceIndex.score < 80 && "text-performance-good",
+                    performanceIndex.score >= 40 && performanceIndex.score < 60 && "text-performance-average",
+                    performanceIndex.score < 40 && "text-performance-terrible"
+                  )}>
+                    {performanceIndex.score}
+                  </div>
+                  <div className="text-xxs text-electric-cyan/50 mt-1">Grade: {performanceIndex.grade}</div>
+                </div>
+
+                {/* Streak Status */}
+                <div className="text-center">
+                  <div className="text-xs font-mono text-electric-cyan/60 mb-2 uppercase tracking-wider">Streak</div>
+                  <div className="flex items-center justify-center">
+                    <Flame className={cn(
+                      "w-6 h-6 mr-1",
+                      todaySession.currentStreak > 0 ? "text-neon-green" : "text-electric-cyan/30"
+                    )} />
+                    <span className="text-xl stat-number text-electric-cyan">
+                      {Math.abs(todaySession.currentStreak)}
+                    </span>
+                  </div>
+                  <div className="text-xxs text-electric-cyan/50 mt-1">
+                    {todaySession.currentStreak > 0 ? 'Wins' : todaySession.currentStreak < 0 ? 'Losses' : 'None'}
+                  </div>
+                </div>
+
+                {/* Action Recommendation */}
+                <div className="text-center">
+                  <div className="text-xs font-mono text-electric-cyan/60 mb-2 uppercase tracking-wider">Action</div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={cn(
+                      "px-3 py-2 rounded-lg font-bold text-xs border-2 transition-all",
+                      tiltMeter.status === 'flow' && "bg-neon-green/20 border-neon-green text-neon-green hover:bg-neon-green/30",
+                      tiltMeter.status === 'good' && "bg-electric-cyan/20 border-electric-cyan text-electric-cyan hover:bg-electric-cyan/30",
+                      tiltMeter.status === 'neutral' && "bg-neon-yellow/20 border-neon-yellow text-neon-yellow hover:bg-neon-yellow/30",
+                      tiltMeter.status === 'warning' && "bg-performance-poor/20 border-performance-poor text-performance-poor hover:bg-performance-poor/30",
+                      tiltMeter.status === 'danger' && "bg-neon-red/20 border-neon-red text-neon-red hover:bg-neon-red/30 animate-pulse"
+                    )}
+                  >
+                    {tiltMeter.status === 'flow' && 'QUEUE UP!'}
+                    {tiltMeter.status === 'good' && 'KEEP GOING'}
+                    {tiltMeter.status === 'neutral' && 'CONTINUE'}
+                    {tiltMeter.status === 'warning' && 'CAREFUL'}
+                    {tiltMeter.status === 'danger' && 'STOP NOW'}
+                  </motion.button>
+                  <div className="text-xxs text-electric-cyan/50 mt-1">Recommended</div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Performance Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {coreMetrics.slice(0, 4).map((metric, index) => {
+                const IconComponent = metric.icon === 'Target' ? Target :
+                                     metric.icon === 'Trophy' ? Trophy :
+                                     metric.icon === 'Coins' ? Coins :
+                                     metric.icon === 'Star' ? Star :
+                                     Target; // default
+                
+                return (
                   <motion.div
                     key={index}
                     variants={cardAnimation}
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/40 shadow-xl"
+                    whileHover={{ scale: 1.02, y: -5 }}
+                    className="glass-card p-4 min-h-[140px]"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-gray-400 text-sm font-medium">{metric.label}</p>
-                      <div className="flex items-center space-x-2">
-                        {metric.trend === 'up' && <ArrowUp className="w-4 h-4 text-green-400" />}
-                        {metric.trend === 'down' && <ArrowDown className="w-4 h-4 text-red-400" />}
-                        <div className={`w-10 h-10 bg-gradient-to-br ${metric.color} rounded-lg flex items-center justify-center`}>
-                          <metric.icon className="w-5 h-5 text-white" />
-                        </div>
+                      <div className={`w-10 h-10 bg-gradient-to-br ${metric.color} rounded-lg flex items-center justify-center`}>
+                        <IconComponent className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        {metric.trend === 'up' && <ArrowUp className="w-3 h-3 text-neon-green" />}
+                        {metric.trend === 'down' && <ArrowDown className="w-3 h-3 text-neon-red" />}
+                        {metric.trend === 'same' && <Minus className="w-3 h-3 text-electric-cyan/50" />}
                       </div>
                     </div>
-                    <p className="text-2xl font-bold text-white">
-                      {typeof metric.value === 'number' ? (
-                        <AnimatedNumber value={metric.value} suffix={metric.suffix || ''} />
-                      ) : (
-                        metric.value
-                      )}
+                    <p className="text-electric-cyan/80 text-xs font-mono uppercase tracking-wider mb-1">{metric.label}</p>
+                    {isLoading ? (
+                      <div className="skeleton h-6 w-12 rounded mb-1"></div>
+                    ) : (
+                      <p className="text-xl stat-number text-white mb-1">
+                        {typeof metric.value === 'number' ? (
+                          <AnimatedNumber value={metric.value} suffix={metric.suffix || ''} />
+                        ) : (
+                          metric.value
+                        )}
+                      </p>
+                    )}
+                    <p className={`text-xxs font-mono ${
+                      metric.trend === 'up' ? 'text-neon-green' : 
+                      metric.trend === 'down' ? 'text-neon-red' : 'text-electric-cyan/50'
+                    }`}>
+                      {metric.trend === 'up' ? '↗ Improving' : 
+                       metric.trend === 'down' ? '↘ Declining' : '→ Stable'}
                     </p>
                   </motion.div>
-                ))}
-              </div>
+                );
+              })}
+            </div>
 
-              {/* MMR Analytics */}
-              <motion.div
-                variants={cardAnimation}
-                className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/40 shadow-xl"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-white flex items-center space-x-3">
-                    <Activity className="w-6 h-6 text-cyan-400" />
-                    <span>MMR Progression</span>
-                  </h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-cyan-400 rounded-full"></div>
-                      <span className="text-sm text-gray-400">Solo Queue</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
-                      <span className="text-sm text-gray-400">Party Queue</span>
-                    </div>
+            {/* MMR Analytics */}
+            <motion.div
+              variants={cardAnimation}
+              className="glass-card p-6 min-h-[400px]"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="command-header text-lg">MMR PROGRESSION ANALYSIS</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-electric-cyan rounded-full"></div>
+                    <span className="text-xs font-mono text-electric-cyan/60">Solo Queue</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-neon-purple rounded-full"></div>
+                    <span className="text-xs font-mono text-electric-cyan/60">Party Queue</span>
                   </div>
                 </div>
-                {loading.ratings ? (
-                  <div className="h-96 flex items-center justify-center">
-                    <div className="animate-pulse text-center">
-                      <div className="w-16 h-16 bg-gray-700 rounded-xl mx-auto mb-4"></div>
-                      <div className="h-4 bg-gray-700 rounded w-32 mx-auto mb-2"></div>
-                      <div className="h-3 bg-gray-700 rounded w-24 mx-auto"></div>
-                    </div>
-                  </div>
-                ) : mmrHistory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={mmrHistory}>
-                      <defs>
-                        <linearGradient id="soloGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" />
-                      <XAxis dataKey="date" stroke="#8b92a5" />
-                      <YAxis stroke="#8b92a5" domain={['dataMin - 100', 'dataMax + 100']} />
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: '#0f1823',
-                          border: '1px solid #1a2332',
-                          borderRadius: '12px',
-                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                        }}
-                      />
+              </div>
+              {loading.ratings ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="skeleton h-32 w-32 rounded-xl"></div>
+                </div>
+              ) : mmrHistory.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={mmrHistory}>
+                    <defs>
+                      <linearGradient id="soloGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00D9FF" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#00D9FF" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A" />
+                    <XAxis dataKey="date" stroke="#00D9FF" fontSize={12} />
+                    <YAxis stroke="#00D9FF" fontSize={12} domain={['dataMin - 100', 'dataMax + 100']} />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(26, 26, 26, 0.9)',
+                        border: '1px solid rgba(0, 217, 255, 0.3)',
+                        borderRadius: '8px',
+                        backdropFilter: 'blur(20px)'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="solo"
+                      stroke="#00D9FF"
+                      strokeWidth={3}
+                      dot={{ fill: '#00D9FF', strokeWidth: 2, r: 4 }}
+                      fill="url(#soloGradient)"
+                    />
+                    {mmrHistory.some(d => d.party > 0) && (
                       <Line
                         type="monotone"
-                        dataKey="solo"
-                        stroke="#00d4ff"
-                        strokeWidth={3}
-                        dot={{ fill: '#00d4ff', strokeWidth: 2, r: 4 }}
+                        dataKey="party"
+                        stroke="#9370DB"
+                        strokeWidth={2}
+                        dot={{ fill: '#9370DB', strokeWidth: 2, r: 4 }}
                       />
-                      {mmrHistory.some(d => d.party > 0) && (
-                        <Line
-                          type="monotone"
-                          dataKey="party"
-                          stroke="#a855f7"
-                          strokeWidth={2}
-                          dot={{ fill: '#a855f7', strokeWidth: 2, r: 4 }}
-                        />
-                      )}
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-96 flex items-center justify-center text-center">
-                    <div>
-                      <Activity className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-bold text-white mb-2">No MMR History</h3>
-                      <p className="text-gray-400 text-sm">
-                        MMR tracking data is not available for this player.
-                      </p>
-                    </div>
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-center">
+                  <div>
+                    <Activity className="w-16 h-16 text-electric-cyan/30 mx-auto mb-4" />
+                    <h3 className="text-lg font-header text-white mb-2">NO MMR DATA</h3>
+                    <p className="text-electric-cyan/50 text-sm">
+                      MMR tracking data is not available for this operative.
+                    </p>
                   </div>
-                )}
-              </motion.div>
-            </Tabs.Content>
+                </div>
+              )}
+            </motion.div>
+          </div>
 
-            {/* Heroes Tab */}
-            <Tabs.Content value="heroes" className="space-y-8">
+          {/* Right Panel - Secondary Analytics */}
+          <div className="xl:col-span-4 col-span-1 space-y-6">
+            
+            {/* Hero Pool Analytics */}
+            <motion.div
+              variants={cardAnimation}
+              className="glass-card p-6 min-h-[400px]"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="command-header text-lg">HERO MASTERY</h3>
+                <Shield className="w-5 h-5 text-electric-cyan" />
+              </div>
+              
               {loading.heroes ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/40 shadow-xl">
-                      <div className="animate-pulse">
-                        <div className="flex items-center space-x-4 mb-6">
-                          <div className="w-16 h-16 bg-gray-700 rounded-xl"></div>
-                          <div className="flex-1">
-                            <div className="h-6 bg-gray-700 rounded w-32 mb-2"></div>
-                            <div className="h-4 bg-gray-700 rounded w-24"></div>
-                          </div>
-                          <div className="w-12 h-6 bg-gray-700 rounded"></div>
-                        </div>
-                        <div className="h-48 bg-gray-700 rounded mb-4"></div>
-                        <div className="grid grid-cols-3 gap-4">
-                          {[1, 2, 3].map((j) => (
-                            <div key={j} className="text-center">
-                              <div className="h-4 bg-gray-700 rounded w-8 mx-auto mb-1"></div>
-                              <div className="h-5 bg-gray-700 rounded w-12 mx-auto"></div>
-                            </div>
-                          ))}
-                        </div>
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center space-x-3">
+                      <div className="skeleton w-12 h-12 rounded-lg"></div>
+                      <div className="flex-1">
+                        <div className="skeleton h-4 w-24 rounded mb-2"></div>
+                        <div className="skeleton h-3 w-16 rounded"></div>
                       </div>
+                      <div className="skeleton h-6 w-12 rounded"></div>
                     </div>
                   ))}
                 </div>
               ) : transformedHeroStats.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {transformedHeroStats.slice(0, 6).map((hero, index) => (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {transformedHeroStats.slice(0, 8).map((hero, index) => (
                     <motion.div
                       key={index}
-                      variants={cardAnimation}
-                      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/40 shadow-xl"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-center space-x-3 p-2 rounded-lg bg-space-medium/20 hover:bg-space-light/30 transition-all"
                     >
-                      <div className="flex items-center space-x-4 mb-6">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center font-bold text-white text-lg shadow-lg">
-                          {hero.name.substring(0, 2)}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-white">{hero.name}</h3>
-                          <p className="text-gray-400">{hero.matches} matches • {hero.winrate}% win rate</p>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          hero.winrate >= 60 ? 'bg-green-500/20 text-green-400' : 
-                          hero.winrate >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {hero.winrate}%
-                        </div>
+                      <div className="w-12 h-12 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-lg flex items-center justify-center font-bold text-white text-sm shadow-lg">
+                        {hero.name.substring(0, 2).toUpperCase()}
                       </div>
-
-                      <ResponsiveContainer width="100%" height={200}>
-                        <RadarChart data={Object.entries(hero.performance || {}).map(([key, value]) => ({
-                          metric: key.charAt(0).toUpperCase() + key.slice(1),
-                          value,
-                          fullMark: 100
-                        }))}>
-                          <PolarGrid stroke="#1a2332" />
-                          <PolarAngleAxis dataKey="metric" tick={{ fill: '#8b92a5', fontSize: 12 }} />
-                          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                          <Radar
-                            dataKey="value"
-                            stroke="#00d4ff"
-                            fill="#00d4ff"
-                            fillOpacity={0.3}
-                            strokeWidth={2}
-                          />
-                        </RadarChart>
-                      </ResponsiveContainer>
-
-                      <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
-                        <div className="text-center">
-                          <p className="text-gray-400">KDA</p>
-                          <p className="text-cyan-400 font-bold">{hero.kda}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-gray-400">GPM</p>
-                          <p className="text-yellow-400 font-bold">{hero.gpm}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-gray-400">Recent</p>
-                          <p className="text-green-400 font-bold">
-                            {hero.recentRecord?.wins || 0}W-{hero.recentRecord?.losses || 0}L
-                          </p>
-                        </div>
+                      <div className="flex-1">
+                        <h4 className="text-white font-header text-sm">{hero.name}</h4>
+                        <p className="text-electric-cyan/60 text-xs font-mono">
+                          {hero.matches} games • {hero.winrate}% WR
+                        </p>
+                      </div>
+                      <div className={cn(
+                        "px-2 py-1 rounded-full text-xs font-bold",
+                        hero.winrate >= 70 ? 'bg-neon-green/20 text-neon-green' : 
+                        hero.winrate >= 55 ? 'bg-electric-cyan/20 text-electric-cyan' : 
+                        hero.winrate >= 45 ? 'bg-neon-yellow/20 text-neon-yellow' : 
+                        'bg-neon-red/20 text-neon-red'
+                      )}>
+                        {hero.winrate >= 70 ? 'S' : 
+                         hero.winrate >= 55 ? 'A' : 
+                         hero.winrate >= 45 ? 'B' : 'C'}
                       </div>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20">
-                  <Shield className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-white mb-2">No Hero Data</h3>
-                  <p className="text-gray-400">Hero statistics are not available for this player.</p>
+                <div className="h-64 flex items-center justify-center text-center">
+                  <div>
+                    <Shield className="w-16 h-16 text-electric-cyan/30 mx-auto mb-4" />
+                    <h3 className="text-lg font-header text-white mb-2">NO HERO DATA</h3>
+                    <p className="text-electric-cyan/50 text-sm">
+                      Hero statistics are not available for this operative.
+                    </p>
+                  </div>
                 </div>
               )}
-            </Tabs.Content>
+            </motion.div>
 
-            {/* Closing tabs */}
-            <Tabs.Content value="matches" className="space-y-8">
-              <div className="text-center py-20">
-                <Swords className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Match History</h3>
-                <p className="text-gray-400">Detailed match analysis coming soon...</p>
+            {/* Recent Match Timeline */}
+            <motion.div
+              variants={cardAnimation}
+              className="glass-card p-6 min-h-[400px]"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="command-header text-lg">MATCH TIMELINE</h3>
+                <Swords className="w-5 h-5 text-electric-cyan" />
               </div>
-            </Tabs.Content>
-
-            <Tabs.Content value="insights" className="space-y-8">
-              <div className="text-center py-20">
-                <Brain className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">AI Insights</h3>
-                <p className="text-gray-400">Performance insights and recommendations coming soon...</p>
-              </div>
-            </Tabs.Content>
-          </Tabs.Root>
+              
+              {loading.matches ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center space-x-3 p-2">
+                      <div className="skeleton w-8 h-8 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="skeleton h-4 w-32 rounded mb-1"></div>
+                        <div className="skeleton h-3 w-24 rounded"></div>
+                      </div>
+                      <div className="skeleton h-6 w-16 rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : recentMatches && recentMatches.length > 0 ? (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {recentMatches.slice(0, 10).map((match, index) => {
+                    const isWin = match.radiant_win === (match.player_slot < 128);
+                    const kda = `${match.kills}/${match.deaths}/${match.assists}`;
+                    const duration = Math.floor(match.duration / 60);
+                    
+                    return (
+                      <motion.div
+                        key={match.match_id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={cn(
+                          "flex items-center space-x-3 p-2 rounded-lg border-l-4 transition-all hover:bg-space-light/20",
+                          isWin ? "border-l-neon-green bg-neon-green/5" : "border-l-neon-red bg-neon-red/5"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
+                          isWin ? "bg-neon-green/20 text-neon-green" : "bg-neon-red/20 text-neon-red"
+                        )}>
+                          {isWin ? 'W' : 'L'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-white text-sm font-mono">{kda}</span>
+                            <span className="text-electric-cyan/60 text-xs">•</span>
+                            <span className="text-electric-cyan/60 text-xs">{duration}m</span>
+                          </div>
+                          <p className="text-electric-cyan/60 text-xs">
+                            {match.hero_id ? `Hero ${match.hero_id}` : 'Unknown Hero'}
+                          </p>
+                        </div>
+                        <div className="text-xs font-mono text-electric-cyan/60">
+                          {new Date(match.start_time * 1000).toLocaleDateString()}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-center">
+                  <div>
+                    <Swords className="w-16 h-16 text-electric-cyan/30 mx-auto mb-4" />
+                    <h3 className="text-lg font-header text-white mb-2">NO MATCH DATA</h3>
+                    <p className="text-electric-cyan/50 text-sm">
+                      Recent match history is not available.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
+          </div>
         </div>
       </motion.div>
     </Tooltip.Provider>
   );
 };
 
+// Update the main PlayerDashboard reference to use the new CommandCenterDashboard
+const PlayerDashboard = CommandCenterDashboard;
+
 // Loading Component
 const LoadingScreen = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-space-black flex items-center justify-center">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1629,18 +1427,18 @@ const LoadingScreen = () => {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
+          className="w-16 h-16 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
         >
           <Shield className="w-10 h-10 text-white" />
         </motion.div>
-        <h2 className="text-xl font-bold text-white mb-2">Loading Dota 2 Companion</h2>
+        <h2 className="command-header text-xl mb-2">LOADING DOTA 2 COMMAND CENTER</h2>
         <div className="flex items-center justify-center space-x-1">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
               animate={{ scale: [1, 1.5, 1] }}
               transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-              className="w-2 h-2 bg-cyan-400 rounded-full"
+              className="w-2 h-2 bg-electric-cyan rounded-full"
             />
           ))}
         </div>
@@ -1679,16 +1477,20 @@ const AuthCallbackHandler = () => {
         
         // Check if this is a valid Steam callback
         if (urlParams.has('openid.mode') && urlParams.has('openid.claimed_id')) {
+          console.log('Processing Steam authentication callback...');
           await handleSteamCallback(urlParams);
+          console.log('Steam authentication completed, redirecting...');
           setIsComplete(true);
-          // Redirect to main app after a short delay
+          
+          // Force redirect to main app after a brief delay
           setTimeout(() => {
-            window.history.replaceState({}, '', '/');
-          }, 1500);
+            console.log('Redirecting to main app...');
+            window.location.replace('/');
+          }, 1000);
         } else {
           // Not a Steam callback, redirect to main page
           console.log('Not a Steam callback, redirecting to main page');
-          window.history.replaceState({}, '', '/');
+          window.location.replace('/');
         }
       } catch (error) {
         console.error('Auth callback failed:', error);
@@ -1697,7 +1499,7 @@ const AuthCallbackHandler = () => {
     };
 
     processCallback();
-  }, [hasProcessed, handleSteamCallback]); // Include dependencies
+  }, [hasProcessed, handleSteamCallback]);
 
   const handleSwitchToDevMode = () => {
     toggleAuthMode(); // Switch to development mode
@@ -1707,50 +1509,50 @@ const AuthCallbackHandler = () => {
   const finalError = error || processingError;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-space-black flex items-center justify-center">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-center bg-gray-800/60 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-2xl max-w-md"
+        className="text-center glass-card p-8 max-w-md"
       >
         {finalError ? (
           <>
             {finalError.switchToDevMode ? (
-              <Gamepad2 className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+              <Gamepad2 className="w-16 h-16 text-electric-cyan mx-auto mb-4" />
             ) : (
-              <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+              <AlertTriangle className="w-16 h-16 text-neon-red mx-auto mb-4" />
             )}
-            <h2 className="text-xl font-bold text-white mb-2">
+            <h2 className="command-header text-xl mb-2">
               {finalError.switchToDevMode ? 'Steam Login Successful!' : 'Authentication Failed'}
             </h2>
-            <p className={`text-sm mb-6 ${finalError.switchToDevMode ? 'text-gray-300' : 'text-red-400'}`}>
+            <p className={`text-sm mb-6 ${finalError.switchToDevMode ? 'text-electric-cyan/80' : 'text-neon-red/80'}`}>
               {finalError.message}
             </p>
             <div className="space-y-3">
               {finalError.switchToDevMode && (
                 <button
                   onClick={handleSwitchToDevMode}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white px-6 py-3 rounded-lg transition-all font-medium"
+                  className="w-full bg-gradient-to-r from-neon-green/20 to-electric-cyan/20 border-2 border-neon-green text-neon-green px-6 py-3 rounded-lg transition-all font-header font-bold hover:bg-neon-green/30"
                 >
-                  Switch to Development Mode
+                  SWITCH TO DEVELOPMENT MODE
                 </button>
               )}
               <button
                 onClick={() => window.location.href = '/'}
-                className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+                className="w-full bg-space-medium/50 border-2 border-electric-cyan/30 text-electric-cyan px-6 py-3 rounded-lg transition-all font-header font-bold hover:bg-space-medium/70"
               >
-                Return to Login
+                RETURN TO LOGIN
               </button>
             </div>
           </>
         ) : isComplete ? (
           <>
-            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Authentication Complete!</h2>
-            <p className="text-gray-400 text-sm mb-4">Redirecting to your dashboard...</p>
+            <CheckCircle className="w-16 h-16 text-neon-green mx-auto mb-4" />
+            <h2 className="command-header text-xl mb-2">AUTHENTICATION COMPLETE!</h2>
+            <p className="text-electric-cyan/80 text-sm mb-4">Redirecting to command center...</p>
             <div className="flex items-center justify-center space-x-2">
-              <ChevronRight className="w-5 h-5 text-green-400" />
-              <span className="text-green-400 text-sm">Loading dashboard</span>
+              <ChevronRight className="w-5 h-5 text-neon-green" />
+              <span className="text-neon-green text-sm font-mono">LOADING DASHBOARD</span>
             </div>
           </>
         ) : (
@@ -1758,15 +1560,15 @@ const AuthCallbackHandler = () => {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
+              className="w-16 h-16 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
             >
               <Shield className="w-10 h-10 text-white" />
             </motion.div>
-            <h2 className="text-xl font-bold text-white mb-2">Processing Authentication</h2>
-            <p className="text-gray-400 text-sm mb-4">Fetching your Steam and Dota 2 data...</p>
+            <h2 className="command-header text-xl mb-2">PROCESSING AUTHENTICATION</h2>
+            <p className="text-electric-cyan/80 text-sm mb-4">Fetching your Steam and Dota 2 data...</p>
             <div className="flex items-center justify-center space-x-2">
-              <LoaderCircle className="w-5 h-5 animate-spin text-cyan-400" />
-              <span className="text-cyan-400 text-sm">Please wait</span>
+              <LoaderCircle className="w-5 h-5 animate-spin text-electric-cyan" />
+              <span className="text-electric-cyan text-sm font-mono">PLEASE WAIT</span>
             </div>
           </>
         )}
@@ -1791,15 +1593,15 @@ const AppContent = () => {
       case 'dashboard':
         return <PlayerDashboard />;
       case 'matches':
-        return <div className="p-6 text-white">Matches page coming soon...</div>;
+        return <div className="p-6 text-electric-cyan font-header">MATCHES PAGE COMING SOON...</div>;
       case 'heroes':
-        return <div className="p-6 text-white">Heroes page coming soon...</div>;
+        return <div className="p-6 text-electric-cyan font-header">HEROES PAGE COMING SOON...</div>;
       case 'live':
-        return <div className="p-6 text-white">Live Game page coming soon...</div>;
+        return <div className="p-6 text-electric-cyan font-header">LIVE GAME PAGE COMING SOON...</div>;
       case 'draft':
-        return <div className="p-6 text-white">Draft page coming soon...</div>;
+        return <div className="p-6 text-electric-cyan font-header">DRAFT PAGE COMING SOON...</div>;
       case 'pro':
-        return <div className="p-6 text-white">Pro Scene page coming soon...</div>;
+        return <div className="p-6 text-electric-cyan font-header">PRO SCENE PAGE COMING SOON...</div>;
       default:
         return <PlayerDashboard />;
     }
@@ -1812,7 +1614,7 @@ const AppContent = () => {
   return (
     <DataProvider>
       <Tooltip.Provider>
-        <div className="min-h-screen bg-gray-900">
+        <div className="min-h-screen bg-space-black">
           <Navigation 
             currentPage={currentPage} 
             setCurrentPage={setCurrentPage}
