@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -19,39 +19,50 @@ import * as Tabs from '@radix-ui/react-tabs';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import * as Dialog from '@radix-ui/react-dialog';
 import { clsx } from 'clsx';
-
-// Authentication Context
-const AuthContext = createContext(null);
+import authService from './services/auth.service.js';
+import { DataProvider, useData } from './contexts/DataContext.jsx';
+import { AuthContext } from './contexts/AuthContext.js';
+import {
+  transformMatches,
+  transformHeroStats,
+  transformRatings,
+  calculateTodaySession,
+  calculateCoreMetrics,
+  getRankName,
+  getDefaultMetrics,
+  getDefaultHeroStats
+} from './utils/dataTransforms.js';
 
 // Authentication Provider
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [authMode, setAuthMode] = useState(
+    import.meta.env.VITE_AUTH_MODE || 'development'
+  );
 
   // Check for existing session on mount
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const savedUser = localStorage.getItem('dota2_user');
-        const sessionExpiry = localStorage.getItem('dota2_session_expiry');
+        const savedAuth = localStorage.getItem('dota2_auth');
         
-        if (savedUser && sessionExpiry) {
+        if (savedAuth) {
+          const authData = JSON.parse(savedAuth);
           const now = new Date().getTime();
-          const expiry = parseInt(sessionExpiry);
           
-          if (now < expiry) {
-            setUser(JSON.parse(savedUser));
+          if (authData.expiresAt && now < authData.expiresAt) {
+            setUser(authData.user);
+            setAuthMode(authData.authMode || 'development');
           } else {
             // Session expired, clear storage
-            localStorage.removeItem('dota2_user');
-            localStorage.removeItem('dota2_session_expiry');
+            localStorage.removeItem('dota2_auth');
           }
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
-        localStorage.removeItem('dota2_user');
-        localStorage.removeItem('dota2_session_expiry');
+        localStorage.removeItem('dota2_auth');
       } finally {
         setIsLoading(false);
       }
@@ -60,41 +71,27 @@ const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (credentials) => {
+  // Login with Player ID (Development Mode)
+  const loginWithPlayerId = async (playerId) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock authentication validation
-      if (!credentials.steamId || credentials.steamId.length < 3) {
-        throw new Error('Please enter a valid Steam ID');
-      }
-      
-      if (!credentials.password || credentials.password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-      
-      // Mock successful authentication
-      const userData = {
-        id: credentials.steamId,
-        steamId: credentials.steamId,
-        displayName: credentials.steamId.includes('pro') ? 'ProGamer_Elite' : 'PlayerX_ProGamer',
-        avatar: null,
-        joinDate: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      };
-      
-      // Set session expiry (24 hours)
-      const expiryTime = new Date().getTime() + (24 * 60 * 60 * 1000);
+      const userData = await authService.loginWithPlayerId(playerId);
       
       // Save to localStorage
-      localStorage.setItem('dota2_user', JSON.stringify(userData));
-      localStorage.setItem('dota2_session_expiry', expiryTime.toString());
+      const authData = {
+        user: userData,
+        token: generateSessionToken(),
+        authMode: 'development',
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+        lastDataSync: Date.now()
+      };
       
+      localStorage.setItem('dota2_auth', JSON.stringify(authData));
       setUser(userData);
+      setAuthMode('development');
+      
       return userData;
     } catch (error) {
       setError(error.message);
@@ -103,25 +100,108 @@ const AuthProvider = ({ children }) => {
       setIsLoading(false);
     }
   };
+
+  // Steam OpenID Login (Production Mode)
+  const loginWithSteam = async () => {
+    try {
+      await authService.initiateSteamLogin();
+    } catch (error) {
+      setError('Failed to initiate Steam login');
+      throw error;
+    }
+  };
+
+  // Handle Steam callback
+  const handleSteamCallback = useCallback(async (urlParams) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const userData = await authService.handleSteamCallback(urlParams);
+      
+      // Save to localStorage
+      const authData = {
+        user: userData,
+        token: generateSessionToken(),
+        authMode: 'steam',
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+        lastDataSync: Date.now()
+      };
+      
+      localStorage.setItem('dota2_auth', JSON.stringify(authData));
+      setUser(userData);
+      setAuthMode('steam');
+      
+      return userData;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []); // Empty dependency array since this function doesn't depend on any props/state
+
+  // Refresh user data
+  const refreshUserData = async () => {
+    if (!user?.accountId) return;
+    
+    setIsLoading(true);
+    try {
+      const updatedData = await authService.refreshUserData(user.accountId, user.authMode);
+      
+      // Update localStorage
+      const savedAuth = JSON.parse(localStorage.getItem('dota2_auth') || '{}');
+      savedAuth.user = updatedData;
+      savedAuth.lastDataSync = Date.now();
+      localStorage.setItem('dota2_auth', JSON.stringify(savedAuth));
+      
+      setUser(updatedData);
+      return updatedData;
+    } catch (error) {
+      setError('Failed to refresh user data');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Toggle auth mode
+  const toggleAuthMode = () => {
+    const newMode = authMode === 'development' ? 'steam' : 'development';
+    setAuthMode(newMode);
+  };
   
   const logout = () => {
     setUser(null);
     setError(null);
-    localStorage.removeItem('dota2_user');
-    localStorage.removeItem('dota2_session_expiry');
+    localStorage.removeItem('dota2_auth');
+    authService.clearCache();
   };
   
   const clearError = () => setError(null);
+
+  // Generate session token
+  const generateSessionToken = () => {
+    return btoa(Math.random().toString(36).substring(2) + Date.now().toString(36));
+  };
   
   return (
     <AuthContext.Provider value={{
       user,
       isLoading,
       error,
-      login,
+      authMode,
+      loginWithPlayerId,
+      loginWithSteam,
+      handleSteamCallback,
+      refreshUserData,
+      toggleAuthMode,
       logout,
       clearError,
-      isAuthenticated: !!user
+      isAuthenticated: !!user,
+      // Helper functions
+      getFamousPlayers: () => authService.getFamousPlayers(),
+      isDevMode: authMode === 'development'
     }}>
       {children}
     </AuthContext.Provider>
@@ -178,9 +258,9 @@ const AnimatedNumber = ({ value, duration = 1000, prefix = '', suffix = '' }) =>
   return <span>{prefix}{displayValue.toLocaleString()}{suffix}</span>;
 };
 
-// Navigation Component
+// Navigation Component  
 const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenuOpen }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUserData, isLoading } = useAuth();
   const navItems = [
     { id: 'dashboard', icon: Home, label: 'Dashboard' },
     { id: 'matches', icon: Swords, label: 'Matches' },
@@ -192,6 +272,14 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
 
   const handleLogout = () => {
     logout();
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await refreshUserData();
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    }
   };
 
   return (
@@ -241,13 +329,36 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
                   <User className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm text-gray-300">{user?.displayName || 'Player'}</span>
-                  <span className="text-xs text-gray-500">#{user?.steamId || '12345'}</span>
+                  <span className="text-sm text-gray-300">{user?.personaName || user?.displayName || 'Player'}</span>
+                  <span className="text-xs text-gray-500">
+                    {user?.authMode === 'development' ? `ID: ${user?.accountId}` : `#${user?.steamId || '12345'}`}
+                  </span>
                 </div>
               </motion.div>
             </Tooltip.Trigger>
             <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
               View Profile
+            </Tooltip.Content>
+          </Tooltip.Root>
+          
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className={`p-2 transition-colors ${
+                  isLoading 
+                    ? 'text-gray-600 cursor-not-allowed' 
+                    : 'text-gray-400 hover:text-cyan-400'
+                }`}
+              >
+                <RotateCcw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+              </motion.button>
+            </Tooltip.Trigger>
+            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
+              {isLoading ? 'Refreshing...' : 'Refresh Data'}
             </Tooltip.Content>
           </Tooltip.Root>
           
@@ -335,67 +446,75 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
   );
 };
 
-// Enhanced Login Page with Form
+// Enhanced Login Page with Dual Authentication Modes
 const LoginPage = () => {
-  const { login, isLoading, error, clearError } = useAuth();
-  const [formData, setFormData] = useState({
-    steamId: '',
-    password: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
+  const { 
+    loginWithPlayerId, 
+    loginWithSteam, 
+    isLoading, 
+    error, 
+    clearError, 
+    authMode, 
+    toggleAuthMode,
+    getFamousPlayers 
+  } = useAuth();
+  
+  const [playerId, setPlayerId] = useState('');
   const [formErrors, setFormErrors] = useState({});
+  const famousPlayers = getFamousPlayers();
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handlePlayerIdChange = (e) => {
+    const value = e.target.value;
+    setPlayerId(value);
     
-    // Clear field-specific error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+    // Clear errors when user starts typing
+    if (formErrors.playerId) {
+      setFormErrors({});
     }
-    
-    // Clear general error
     if (error) {
       clearError();
     }
   };
 
-  const validateForm = () => {
+  const validatePlayerId = () => {
     const errors = {};
     
-    if (!formData.steamId.trim()) {
-      errors.steamId = 'Steam ID is required';
-    } else if (formData.steamId.length < 3) {
-      errors.steamId = 'Steam ID must be at least 3 characters';
-    }
-    
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+    if (!playerId.trim()) {
+      errors.playerId = 'Player ID is required';
+    } else if (!/^\d+$/.test(playerId.trim())) {
+      errors.playerId = 'Player ID must be numeric (Account ID)';
+    } else if (playerId.trim().length < 6) {
+      errors.playerId = 'Player ID must be at least 6 digits';
     }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleDevLogin = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validatePlayerId()) return;
     
     try {
-      await login(formData);
+      await loginWithPlayerId(playerId.trim());
     } catch (error) {
-      // Error is handled by the auth context
-      console.error('Login failed:', error.message);
+      console.error('Dev login failed:', error.message);
     }
+  };
+
+  const handleSteamLogin = async () => {
+    try {
+      await loginWithSteam();
+    } catch (error) {
+      console.error('Steam login failed:', error.message);
+    }
+  };
+
+  const handleQuickSelect = (accountId) => {
+    setPlayerId(accountId);
+    setFormErrors({});
+    if (error) clearError();
   };
 
   return (
@@ -450,6 +569,27 @@ const LoginPage = () => {
           <p className="text-gray-400 text-lg">Your Ultimate Esports Companion</p>
         </div>
 
+        {/* Auth Mode Toggle */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6"
+        >
+          <div className="flex items-center justify-center mb-4">
+            <button
+              onClick={toggleAuthMode}
+              className="flex items-center space-x-3 bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl px-4 py-2 hover:bg-gray-700/50 transition-all"
+            >
+              <div className={`w-3 h-3 rounded-full ${authMode === 'development' ? 'bg-green-400' : 'bg-blue-400'}`} />
+              <span className="text-sm text-gray-300">
+                {authMode === 'development' ? 'Development Mode' : 'Steam Authentication'}
+              </span>
+              <RotateCcw className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+        </motion.div>
+
         {/* Login Form */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -457,136 +597,154 @@ const LoginPage = () => {
           transition={{ delay: 0.4 }}
           className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-2xl"
         >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Global Error */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-center space-x-2"
-              >
-                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <span className="text-red-400 text-sm">{error}</span>
-              </motion.div>
-            )}
-
-            {/* Steam ID Field */}
-            <div>
-              <label htmlFor="steamId" className="block text-sm font-medium text-gray-300 mb-2">
-                Steam ID or Username
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="w-5 h-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  id="steamId"
-                  name="steamId"
-                  value={formData.steamId}
-                  onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-3 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all ${
-                    formErrors.steamId ? 'border-red-500/50' : 'border-gray-600/50'
-                  }`}
-                  placeholder="Enter your Steam ID"
-                  disabled={isLoading}
-                />
-              </div>
-              {formErrors.steamId && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-red-400 text-sm mt-1"
-                >
-                  {formErrors.steamId}
-                </motion.p>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="w-5 h-5 text-gray-400" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`w-full pl-10 pr-12 py-3 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all ${
-                    formErrors.password ? 'border-red-500/50' : 'border-gray-600/50'
-                  }`}
-                  placeholder="Enter your password"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  disabled={isLoading}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5 text-gray-400 hover:text-gray-300" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-gray-400 hover:text-gray-300" />
-                  )}
-                </button>
-              </div>
-              {formErrors.password && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-red-400 text-sm mt-1"
-                >
-                  {formErrors.password}
-                </motion.p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <motion.button
-              type="submit"
-              disabled={isLoading}
-              whileHover={!isLoading ? { scale: 1.02 } : {}}
-              whileTap={!isLoading ? { scale: 0.98 } : {}}
-              className={`w-full py-3 px-4 rounded-lg font-semibold text-lg flex items-center justify-center space-x-3 transition-all shadow-lg ${
-                isLoading
-                  ? 'bg-gray-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white'
-              }`}
+          {/* Global Error */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-center space-x-2 mb-6"
             >
-              {isLoading ? (
-                <>
-                  <LoaderCircle className="w-5 h-5 animate-spin" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <Gamepad2 className="w-5 h-5" />
-                  <span>Sign In</span>
-                </>
-              )}
-            </motion.button>
-          </form>
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <span className="text-red-400 text-sm">{error}</span>
+            </motion.div>
+          )}
 
-          {/* Demo Credentials */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600/30"
-          >
-            <p className="text-gray-400 text-sm mb-2">Demo Credentials:</p>
-            <div className="text-xs text-gray-500 space-y-1">
-              <p>Steam ID: <span className="text-cyan-400">demo_user</span> or <span className="text-cyan-400">pro_player</span></p>
-              <p>Password: <span className="text-cyan-400">password123</span> (min 6 characters)</p>
+          {authMode === 'development' ? (
+            /* Development Mode - Player ID Login */
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold text-white mb-2">Development Mode</h3>
+                <p className="text-sm text-gray-400">Enter any Dota 2 Account ID to view player data</p>
+              </div>
+
+              <form onSubmit={handleDevLogin} className="space-y-6">
+                {/* Player ID Field */}
+                <div>
+                  <label htmlFor="playerId" className="block text-sm font-medium text-gray-300 mb-2">
+                    Dota 2 Account ID
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      id="playerId"
+                      value={playerId}
+                      onChange={handlePlayerIdChange}
+                      className={`w-full pl-10 pr-4 py-3 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all ${
+                        formErrors.playerId ? 'border-red-500/50' : 'border-gray-600/50'
+                      }`}
+                      placeholder="e.g., 105248644"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {formErrors.playerId && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-red-400 text-sm mt-1"
+                    >
+                      {formErrors.playerId}
+                    </motion.p>
+                  )}
+                </div>
+
+                {/* Submit Button */}
+                <motion.button
+                  type="submit"
+                  disabled={isLoading}
+                  whileHover={!isLoading ? { scale: 1.02 } : {}}
+                  whileTap={!isLoading ? { scale: 0.98 } : {}}
+                  className={`w-full py-3 px-4 rounded-lg font-semibold text-lg flex items-center justify-center space-x-3 transition-all shadow-lg ${
+                    isLoading
+                      ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+                      : 'bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white'
+                  }`}
+                >
+                  {isLoading ? (
+                    <>
+                      <LoaderCircle className="w-5 h-5 animate-spin" />
+                      <span>Fetching Player Data...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Target className="w-5 h-5" />
+                      <span>Fetch Player Data</span>
+                    </>
+                  )}
+                </motion.button>
+              </form>
+
+              {/* Famous Players Quick Select */}
+              <div className="mt-6">
+                <p className="text-gray-400 text-sm mb-3">Quick Select Pro Players:</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {famousPlayers.map((player, index) => (
+                    <motion.button
+                      key={player.accountId}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      onClick={() => handleQuickSelect(player.accountId)}
+                      disabled={isLoading}
+                      className="flex items-center justify-between p-3 bg-gray-700/30 hover:bg-gray-700/50 border border-gray-600/30 rounded-lg transition-all text-left disabled:opacity-50"
+                    >
+                      <div>
+                        <p className="text-white font-medium">{player.name}</p>
+                        <p className="text-gray-400 text-xs">{player.description}</p>
+                      </div>
+                      <span className="text-cyan-400 text-sm font-mono">{player.accountId}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </motion.div>
+          ) : (
+            /* Steam Authentication Mode */
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold text-white mb-2">Steam Authentication</h3>
+                <p className="text-sm text-gray-400">Sign in with your Steam account for full access</p>
+              </div>
+
+              <motion.button
+                onClick={handleSteamLogin}
+                disabled={isLoading}
+                whileHover={!isLoading ? { scale: 1.02 } : {}}
+                whileTap={!isLoading ? { scale: 0.98 } : {}}
+                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg flex items-center justify-center space-x-3 transition-all shadow-lg ${
+                  isLoading
+                    ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+                    : 'bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 text-white border border-gray-600'
+                }`}
+              >
+                {isLoading ? (
+                  <>
+                    <LoaderCircle className="w-6 h-6 animate-spin" />
+                    <span>Redirecting to Steam...</span>
+                  </>
+                ) : (
+                  <>
+                    <Gamepad2 className="w-6 h-6" />
+                    <span>Sign in with Steam</span>
+                  </>
+                )}
+              </motion.button>
+
+              <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <Shield className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-blue-400 text-sm font-medium mb-1">Steam Integration</p>
+                    <p className="text-gray-400 text-xs">
+                      We'll access your Steam profile and Dota 2 match history to provide personalized statistics and insights.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </motion.div>
@@ -821,9 +979,45 @@ const cn = (...classes) => clsx(classes);
 
 // Player Dashboard
 const PlayerDashboard = () => {
-  const [_timeFilter, _setTimeFilter] = useState('month');
-  const [_showAdvanced, _setShowAdvanced] = useState(false);
+  const { user } = useAuth();
+  const { 
+    recentMatches, 
+    heroStats, 
+    winLoss, 
+    ratings, 
+    heroes,
+    loading, 
+    isLoading
+  } = useData();
+  
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Transform API data to dashboard format
+  const todaySession = useMemo(() => {
+    if (!recentMatches) return { wins: 0, losses: 0, mmrChange: 0, currentStreak: 0, gamesUntilBehaviorUpdate: 15 };
+    return calculateTodaySession(recentMatches);
+  }, [recentMatches]);
+
+  const coreMetrics = useMemo(() => {
+    if (!recentMatches && !winLoss) return getDefaultMetrics();
+    return calculateCoreMetrics(user, winLoss, null, recentMatches);
+  }, [user, winLoss, recentMatches]);
+
+  const transformedHeroStats = useMemo(() => {
+    if (!heroStats || !heroes) return getDefaultHeroStats();
+    return transformHeroStats(heroStats, heroes);
+  }, [heroStats, heroes]);
+
+  const mmrHistory = useMemo(() => {
+    if (!ratings) return [];
+    return transformRatings(ratings);
+  }, [ratings]);
+
+  // Transformed matches for future use
+  const _transformedMatches = useMemo(() => {
+    if (!recentMatches || !heroes) return [];
+    return transformMatches(recentMatches, heroes);
+  }, [recentMatches, heroes]);
 
   return (
     <Tooltip.Provider>
@@ -873,38 +1067,81 @@ const PlayerDashboard = () => {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
                     <div className="text-center lg:text-left">
                       <p className="text-cyan-400 text-sm font-medium mb-1">Today's Session</p>
-                      <p className="text-white text-2xl lg:text-3xl font-bold">
-                        {mockData.todaySession.wins}W - {mockData.todaySession.losses}L
-                      </p>
-                      <p className="text-gray-400 text-xs">Win Rate: {Math.round((mockData.todaySession.wins / (mockData.todaySession.wins + mockData.todaySession.losses)) * 100)}%</p>
+                      {loading.matches ? (
+                        <div className="animate-pulse">
+                          <div className="h-8 bg-gray-700 rounded w-20 mx-auto lg:mx-0 mb-1"></div>
+                          <div className="h-3 bg-gray-700 rounded w-16 mx-auto lg:mx-0"></div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-white text-2xl lg:text-3xl font-bold">
+                            {todaySession.wins}W - {todaySession.losses}L
+                          </p>
+                          <p className="text-gray-400 text-xs">
+                            Win Rate: {todaySession.wins + todaySession.losses > 0 ? 
+                              Math.round((todaySession.wins / (todaySession.wins + todaySession.losses)) * 100) : 0}%
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="text-center lg:text-left">
                       <p className="text-cyan-400 text-sm font-medium mb-1">MMR Change</p>
-                      <p className={cn(
-                        "text-2xl lg:text-3xl font-bold flex items-center justify-center lg:justify-start",
-                        mockData.todaySession.mmrChange > 0 ? 'text-green-400' : 'text-red-400'
-                      )}>
-                        {mockData.todaySession.mmrChange > 0 ? (
-                          <ArrowUp className="w-5 h-5 mr-1" />
-                        ) : (
-                          <ArrowDown className="w-5 h-5 mr-1" />
-                        )}
-                        {Math.abs(mockData.todaySession.mmrChange)}
-                      </p>
-                      <p className="text-gray-400 text-xs">Today's progress</p>
+                      {loading.matches ? (
+                        <div className="animate-pulse">
+                          <div className="h-8 bg-gray-700 rounded w-16 mx-auto lg:mx-0 mb-1"></div>
+                          <div className="h-3 bg-gray-700 rounded w-20 mx-auto lg:mx-0"></div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className={cn(
+                            "text-2xl lg:text-3xl font-bold flex items-center justify-center lg:justify-start",
+                            todaySession.mmrChange > 0 ? 'text-green-400' : todaySession.mmrChange < 0 ? 'text-red-400' : 'text-gray-400'
+                          )}>
+                            {todaySession.mmrChange > 0 ? (
+                              <ArrowUp className="w-5 h-5 mr-1" />
+                            ) : todaySession.mmrChange < 0 ? (
+                              <ArrowDown className="w-5 h-5 mr-1" />
+                            ) : (
+                              <Minus className="w-5 h-5 mr-1" />
+                            )}
+                            {Math.abs(todaySession.mmrChange)}
+                          </p>
+                          <p className="text-gray-400 text-xs">Today's progress</p>
+                        </>
+                      )}
                     </div>
                     <div className="text-center lg:text-left">
                       <p className="text-cyan-400 text-sm font-medium mb-1">Current Streak</p>
-                      <p className="text-white text-2xl lg:text-3xl font-bold flex items-center justify-center lg:justify-start">
-                        <Flame className="w-6 h-6 mr-2 text-orange-400" />
-                        {mockData.todaySession.currentStreak}
-                      </p>
-                      <p className="text-gray-400 text-xs">Win streak</p>
+                      {loading.matches ? (
+                        <div className="animate-pulse">
+                          <div className="h-8 bg-gray-700 rounded w-12 mx-auto lg:mx-0 mb-1"></div>
+                          <div className="h-3 bg-gray-700 rounded w-16 mx-auto lg:mx-0"></div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-white text-2xl lg:text-3xl font-bold flex items-center justify-center lg:justify-start">
+                            <Flame className="w-6 h-6 mr-2 text-orange-400" />
+                            {todaySession.currentStreak}
+                          </p>
+                          <p className="text-gray-400 text-xs">
+                            {todaySession.currentStreak > 0 ? 'Win streak' : 'Games today'}
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="text-center lg:text-left">
                       <p className="text-cyan-400 text-sm font-medium mb-1">Behavior Update</p>
-                      <p className="text-white text-2xl lg:text-3xl font-bold">{mockData.todaySession.gamesUntilBehaviorUpdate}</p>
-                      <p className="text-gray-400 text-xs">Games remaining</p>
+                      {loading.matches ? (
+                        <div className="animate-pulse">
+                          <div className="h-8 bg-gray-700 rounded w-8 mx-auto lg:mx-0 mb-1"></div>
+                          <div className="h-3 bg-gray-700 rounded w-20 mx-auto lg:mx-0"></div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-white text-2xl lg:text-3xl font-bold">{todaySession.gamesUntilBehaviorUpdate}</p>
+                          <p className="text-gray-400 text-xs">Games remaining</p>
+                        </>
+                      )}
                     </div>
                   </div>
                   
@@ -956,23 +1193,34 @@ const PlayerDashboard = () => {
                     </motion.div>
                     
                     <div className="text-center xl:text-left">
-                      <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">{mockData.profile.name}</h2>
+                      <h2 className="text-2xl lg:text-3xl font-bold text-white mb-2">
+                        {user?.personaName || user?.profile?.personaname || 'Player'}
+                      </h2>
                       <div className="flex items-center justify-center xl:justify-start space-x-3 mb-4">
                         <Trophy className="w-6 h-6 text-yellow-400" />
-                        <span className="text-xl text-yellow-400 font-semibold">{mockData.profile.rank}</span>
-                        <span className="text-gray-400">#{mockData.profile.rankNumber}</span>
+                        <span className="text-xl text-yellow-400 font-semibold">
+                          {getRankName(user?.rank?.tier || user?.rank_tier) || 'Unranked'}
+                        </span>
+                        {user?.rank?.leaderboard || user?.leaderboard_rank ? (
+                          <span className="text-gray-400">#{user?.rank?.leaderboard || user?.leaderboard_rank}</span>
+                        ) : null}
                       </div>
                       
                       {/* Streak Badge */}
-                      {mockData.profile.streakType === 'win' ? (
+                      {todaySession.currentStreak > 0 ? (
                         <div className="inline-flex items-center bg-green-500/20 border border-green-500/30 px-4 py-2 rounded-full">
                           <ArrowUp className="w-4 h-4 text-green-400 mr-2" />
-                          <span className="text-green-400 font-medium">{mockData.profile.streakCount} Win Streak</span>
+                          <span className="text-green-400 font-medium">{todaySession.currentStreak} Win Streak</span>
                         </div>
-                      ) : (
+                      ) : todaySession.losses > 0 ? (
                         <div className="inline-flex items-center bg-red-500/20 border border-red-500/30 px-4 py-2 rounded-full">
                           <ArrowDown className="w-4 h-4 text-red-400 mr-2" />
-                          <span className="text-red-400 font-medium">{mockData.profile.streakCount} Loss Streak</span>
+                          <span className="text-red-400 font-medium">No Active Streak</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center bg-gray-500/20 border border-gray-500/30 px-4 py-2 rounded-full">
+                          <Minus className="w-4 h-4 text-gray-400 mr-2" />
+                          <span className="text-gray-400 font-medium">No Games Today</span>
                         </div>
                       )}
                     </div>
@@ -981,38 +1229,96 @@ const PlayerDashboard = () => {
                   {/* Core Stats Grid */}
                   <div className="xl:col-span-2">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                      {[
-                        { label: 'Current MMR', value: mockData.profile.mmr, icon: Star, color: 'cyan' },
-                        { label: 'Peak MMR', value: mockData.profile.peakMmr, icon: TrendingUp, color: 'green' },
-                        { label: 'Behavior Score', value: mockData.profile.behaviorScore, icon: Heart, color: mockData.profile.behaviorScore >= 9000 ? 'green' : 'yellow' },
-                        { label: 'Account Level', value: mockData.profile.accountLevel, icon: Award, color: 'purple' },
-                        { label: 'Hours Played', value: `${mockData.profile.hoursPlayed}h`, icon: Clock, color: 'blue' },
-                        { label: 'Win Rate', value: '58.3%', icon: Trophy, color: 'green' },
-                        { label: 'Commends', value: mockData.profile.commends, icon: Gift, color: 'yellow' },
-                        { label: 'Region', value: mockData.profile.preferredRegion, icon: MapPin, color: 'blue', isText: true },
-                      ].map((stat, index) => (
-                        <Tooltip.Root key={index}>
-                          <Tooltip.Trigger asChild>
-                            <motion.div
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="bg-gray-700/30 backdrop-blur-sm rounded-xl p-4 border border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <p className="text-gray-400 text-xs font-medium">{stat.label}</p>
-                                <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
-                              </div>
-                              <p className={`text-lg lg:text-xl font-bold text-${stat.color}-400`}>
-                                {stat.isText ? stat.value : <AnimatedNumber value={typeof stat.value === 'string' ? stat.value : stat.value} />}
-                              </p>
-                            </motion.div>
-                          </Tooltip.Trigger>
-                          <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
-                            {stat.label} Details
-                          </Tooltip.Content>
-                        </Tooltip.Root>
-                      ))}
+                      {(() => {
+                        const stats = [
+                          { 
+                            label: 'Current MMR', 
+                            value: user?.mmr?.solo || user?.mmr?.estimate || user?.solo_competitive_rank || 'N/A', 
+                            icon: Star, 
+                            color: 'cyan' 
+                          },
+                          { 
+                            label: 'Total Games', 
+                            value: winLoss ? winLoss.win + winLoss.lose : 'N/A', 
+                            icon: TrendingUp, 
+                            color: 'green' 
+                          },
+                          { 
+                            label: 'Plus Subscriber', 
+                            value: user?.profile?.plus ? 'Yes' : 'No', 
+                            icon: Heart, 
+                            color: user?.profile?.plus ? 'green' : 'gray',
+                            isText: true 
+                          },
+                          { 
+                            label: 'Cheese Count', 
+                            value: user?.profile?.cheese || 0, 
+                            icon: Award, 
+                            color: 'yellow' 
+                          },
+                          { 
+                            label: 'Win Rate', 
+                            value: winLoss && (winLoss.win + winLoss.lose) > 0 ? 
+                              `${((winLoss.win / (winLoss.win + winLoss.lose)) * 100).toFixed(1)}%` : 'N/A',
+                            icon: Trophy, 
+                            color: 'green',
+                            isText: true 
+                          },
+                          { 
+                            label: 'Recent Wins', 
+                            value: winLoss?.win || 0, 
+                            icon: CheckCircle, 
+                            color: 'green' 
+                          },
+                          { 
+                            label: 'Recent Losses', 
+                            value: winLoss?.lose || 0, 
+                            icon: X, 
+                            color: 'red' 
+                          },
+                          { 
+                            label: 'Account ID', 
+                            value: user?.accountId || 'N/A', 
+                            icon: MapPin, 
+                            color: 'blue', 
+                            isText: true 
+                          },
+                        ];
+
+                        return stats.map((stat, index) => (
+                          <Tooltip.Root key={index}>
+                            <Tooltip.Trigger asChild>
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                className="bg-gray-700/30 backdrop-blur-sm rounded-xl p-4 border border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200 cursor-pointer"
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-gray-400 text-xs font-medium">{stat.label}</p>
+                                  <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
+                                </div>
+                                {loading.stats && (stat.label.includes('Win') || stat.label.includes('Games')) ? (
+                                  <div className="animate-pulse">
+                                    <div className="h-6 bg-gray-700 rounded w-12"></div>
+                                  </div>
+                                ) : (
+                                  <p className={`text-lg lg:text-xl font-bold text-${stat.color}-400`}>
+                                    {stat.isText ? stat.value : (
+                                      typeof stat.value === 'number' ? 
+                                        <AnimatedNumber value={stat.value} /> : 
+                                        stat.value
+                                    )}
+                                  </p>
+                                )}
+                              </motion.div>
+                            </Tooltip.Trigger>
+                            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
+                              {stat.label} Details
+                            </Tooltip.Content>
+                          </Tooltip.Root>
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1020,40 +1326,58 @@ const PlayerDashboard = () => {
 
               {/* Performance Metrics Dashboard */}
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                {mockData.coreMetrics.slice(0, 4).map((metric, index) => (
-                  <motion.div
-                    key={index}
-                    variants={cardAnimation}
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 rounded-2xl p-6 border border-gray-700/40 shadow-xl backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-300"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-12 h-12 bg-gradient-to-br ${metric.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                        <metric.icon className="w-6 h-6 text-white" />
+                {coreMetrics.slice(0, 4).map((metric, index) => {
+                  // Map icon names to components
+                  const IconComponent = metric.icon === 'Target' ? Target :
+                                       metric.icon === 'Trophy' ? Trophy :
+                                       metric.icon === 'Coins' ? Coins :
+                                       metric.icon === 'Star' ? Star :
+                                       Target; // default
+                  
+                  return (
+                    <motion.div
+                      key={index}
+                      variants={cardAnimation}
+                      whileHover={{ scale: 1.02, y: -5 }}
+                      className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 rounded-2xl p-6 border border-gray-700/40 shadow-xl backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className={`w-12 h-12 bg-gradient-to-br ${metric.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                          <IconComponent className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          {metric.trend === 'up' && <ArrowUp className="w-4 h-4 text-green-400" />}
+                          {metric.trend === 'down' && <ArrowDown className="w-4 h-4 text-red-400" />}
+                          {metric.trend === 'same' && <Minus className="w-4 h-4 text-gray-400" />}
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        {metric.trend === 'up' && <ArrowUp className="w-4 h-4 text-green-400" />}
-                        {metric.trend === 'down' && <ArrowDown className="w-4 h-4 text-red-400" />}
-                        {metric.trend === 'same' && <Minus className="w-4 h-4 text-gray-400" />}
-                      </div>
-                    </div>
-                    <p className="text-gray-400 text-sm font-medium mb-2">{metric.label}</p>
-                    <p className="text-2xl lg:text-3xl font-bold text-white mb-1">
-                      {typeof metric.value === 'number' ? (
-                        <AnimatedNumber value={metric.value} suffix={metric.suffix || ''} />
+                      <p className="text-gray-400 text-sm font-medium mb-2">{metric.label}</p>
+                      {isLoading ? (
+                        <div className="animate-pulse">
+                          <div className="h-8 bg-gray-700 rounded w-16 mb-1"></div>
+                          <div className="h-3 bg-gray-700 rounded w-20"></div>
+                        </div>
                       ) : (
-                        metric.value
+                        <>
+                          <p className="text-2xl lg:text-3xl font-bold text-white mb-1">
+                            {typeof metric.value === 'number' ? (
+                              <AnimatedNumber value={metric.value} suffix={metric.suffix || ''} />
+                            ) : (
+                              metric.value
+                            )}
+                          </p>
+                          <p className={`text-xs font-medium ${
+                            metric.trend === 'up' ? 'text-green-400' : 
+                            metric.trend === 'down' ? 'text-red-400' : 'text-gray-400'
+                          }`}>
+                            {metric.trend === 'up' ? '↗ Improving' : 
+                             metric.trend === 'down' ? '↘ Declining' : '→ Stable'}
+                          </p>
+                        </>
                       )}
-                    </p>
-                    <p className={`text-xs font-medium ${
-                      metric.trend === 'up' ? 'text-green-400' : 
-                      metric.trend === 'down' ? 'text-red-400' : 'text-gray-400'
-                    }`}>
-                      {metric.trend === 'up' ? '↗ Improving' : 
-                       metric.trend === 'down' ? '↘ Declining' : '→ Stable'}
-                    </p>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </div>
             </Tabs.Content>
 
@@ -1110,107 +1434,164 @@ const PlayerDashboard = () => {
                     </div>
                   </div>
                 </div>
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={mockData.mmrHistory}>
-                    <defs>
-                      <linearGradient id="soloGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" />
-                    <XAxis dataKey="date" stroke="#8b92a5" />
-                    <YAxis stroke="#8b92a5" domain={[5500, 6400]} />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: '#0f1823',
-                        border: '1px solid #1a2332',
-                        borderRadius: '12px',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="solo"
-                      stroke="#00d4ff"
-                      strokeWidth={3}
-                      fill="url(#soloGradient)"
-                      fillOpacity={0.6}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="party"
-                      stroke="#a855f7"
-                      strokeWidth={2}
-                      dot={{ fill: '#a855f7', strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {loading.ratings ? (
+                  <div className="h-96 flex items-center justify-center">
+                    <div className="animate-pulse text-center">
+                      <div className="w-16 h-16 bg-gray-700 rounded-xl mx-auto mb-4"></div>
+                      <div className="h-4 bg-gray-700 rounded w-32 mx-auto mb-2"></div>
+                      <div className="h-3 bg-gray-700 rounded w-24 mx-auto"></div>
+                    </div>
+                  </div>
+                ) : mmrHistory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={mmrHistory}>
+                      <defs>
+                        <linearGradient id="soloGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1a2332" />
+                      <XAxis dataKey="date" stroke="#8b92a5" />
+                      <YAxis stroke="#8b92a5" domain={['dataMin - 100', 'dataMax + 100']} />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: '#0f1823',
+                          border: '1px solid #1a2332',
+                          borderRadius: '12px',
+                          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="solo"
+                        stroke="#00d4ff"
+                        strokeWidth={3}
+                        dot={{ fill: '#00d4ff', strokeWidth: 2, r: 4 }}
+                      />
+                      {mmrHistory.some(d => d.party > 0) && (
+                        <Line
+                          type="monotone"
+                          dataKey="party"
+                          stroke="#a855f7"
+                          strokeWidth={2}
+                          dot={{ fill: '#a855f7', strokeWidth: 2, r: 4 }}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-96 flex items-center justify-center text-center">
+                    <div>
+                      <Activity className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-bold text-white mb-2">No MMR History</h3>
+                      <p className="text-gray-400 text-sm">
+                        MMR tracking data is not available for this player.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </Tabs.Content>
 
             {/* Heroes Tab */}
             <Tabs.Content value="heroes" className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {mockData.detailedHeroes.map((hero, index) => (
-                  <motion.div
-                    key={index}
-                    variants={cardAnimation}
-                    className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/40 shadow-xl"
-                  >
-                    <div className="flex items-center space-x-4 mb-6">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center font-bold text-white text-lg shadow-lg">
-                        {hero.name.substring(0, 2)}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-white">{hero.name}</h3>
-                        <p className="text-gray-400">{hero.matches} matches • {hero.winrate}% win rate</p>
-                      </div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        hero.winrate >= 60 ? 'bg-green-500/20 text-green-400' : 
-                        hero.winrate >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 
-                        'bg-red-500/20 text-red-400'
-                      }`}>
-                        {hero.winrate}%
-                      </div>
-                    </div>
-
-                    <ResponsiveContainer width="100%" height={200}>
-                      <RadarChart data={Object.entries(hero.performance).map(([key, value]) => ({
-                        metric: key.charAt(0).toUpperCase() + key.slice(1),
-                        value,
-                        fullMark: 100
-                      }))}>
-                        <PolarGrid stroke="#1a2332" />
-                        <PolarAngleAxis dataKey="metric" tick={{ fill: '#8b92a5', fontSize: 12 }} />
-                        <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                        <Radar
-                          dataKey="value"
-                          stroke="#00d4ff"
-                          fill="#00d4ff"
-                          fillOpacity={0.3}
-                          strokeWidth={2}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
-
-                    <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
-                      <div className="text-center">
-                        <p className="text-gray-400">KDA</p>
-                        <p className="text-cyan-400 font-bold">{hero.kda}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-gray-400">GPM</p>
-                        <p className="text-yellow-400 font-bold">{hero.gpm}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-gray-400">Recent</p>
-                        <p className="text-green-400 font-bold">{hero.recentRecord.wins}W-{hero.recentRecord.losses}L</p>
+              {loading.heroes ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/40 shadow-xl">
+                      <div className="animate-pulse">
+                        <div className="flex items-center space-x-4 mb-6">
+                          <div className="w-16 h-16 bg-gray-700 rounded-xl"></div>
+                          <div className="flex-1">
+                            <div className="h-6 bg-gray-700 rounded w-32 mb-2"></div>
+                            <div className="h-4 bg-gray-700 rounded w-24"></div>
+                          </div>
+                          <div className="w-12 h-6 bg-gray-700 rounded"></div>
+                        </div>
+                        <div className="h-48 bg-gray-700 rounded mb-4"></div>
+                        <div className="grid grid-cols-3 gap-4">
+                          {[1, 2, 3].map((j) => (
+                            <div key={j} className="text-center">
+                              <div className="h-4 bg-gray-700 rounded w-8 mx-auto mb-1"></div>
+                              <div className="h-5 bg-gray-700 rounded w-12 mx-auto"></div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : transformedHeroStats.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {transformedHeroStats.slice(0, 6).map((hero, index) => (
+                    <motion.div
+                      key={index}
+                      variants={cardAnimation}
+                      className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/40 shadow-xl"
+                    >
+                      <div className="flex items-center space-x-4 mb-6">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center font-bold text-white text-lg shadow-lg">
+                          {hero.name.substring(0, 2)}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-white">{hero.name}</h3>
+                          <p className="text-gray-400">{hero.matches} matches • {hero.winrate}% win rate</p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          hero.winrate >= 60 ? 'bg-green-500/20 text-green-400' : 
+                          hero.winrate >= 50 ? 'bg-yellow-500/20 text-yellow-400' : 
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {hero.winrate}%
+                        </div>
+                      </div>
+
+                      <ResponsiveContainer width="100%" height={200}>
+                        <RadarChart data={Object.entries(hero.performance || {}).map(([key, value]) => ({
+                          metric: key.charAt(0).toUpperCase() + key.slice(1),
+                          value,
+                          fullMark: 100
+                        }))}>
+                          <PolarGrid stroke="#1a2332" />
+                          <PolarAngleAxis dataKey="metric" tick={{ fill: '#8b92a5', fontSize: 12 }} />
+                          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                          <Radar
+                            dataKey="value"
+                            stroke="#00d4ff"
+                            fill="#00d4ff"
+                            fillOpacity={0.3}
+                            strokeWidth={2}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+
+                      <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
+                        <div className="text-center">
+                          <p className="text-gray-400">KDA</p>
+                          <p className="text-cyan-400 font-bold">{hero.kda}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-gray-400">GPM</p>
+                          <p className="text-yellow-400 font-bold">{hero.gpm}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-gray-400">Recent</p>
+                          <p className="text-green-400 font-bold">
+                            {hero.recentRecord?.wins || 0}W-{hero.recentRecord?.losses || 0}L
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20">
+                  <Shield className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-white mb-2">No Hero Data</h3>
+                  <p className="text-gray-400">Hero statistics are not available for this player.</p>
+                </div>
+              )}
             </Tabs.Content>
 
             {/* Closing tabs */}
@@ -1268,6 +1649,132 @@ const LoadingScreen = () => {
   );
 };
 
+// Simple router for handling auth callback
+const SimpleRouter = () => {
+  const path = window.location.pathname;
+  
+  if (path === '/auth/steam/callback') {
+    // Handle Steam authentication callback
+    return <AuthCallbackHandler />;
+  }
+  
+  return <AppContent />;
+};
+
+// Auth callback handler component
+const AuthCallbackHandler = () => {
+  const { handleSteamCallback, error, toggleAuthMode } = useAuth();
+  const [processingError, setProcessingError] = useState(null);
+  const [isComplete, setIsComplete] = useState(false);
+  const [hasProcessed, setHasProcessed] = useState(false);
+
+  useEffect(() => {
+    // Prevent processing multiple times
+    if (hasProcessed) return;
+
+    const processCallback = async () => {
+      try {
+        setHasProcessed(true);
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Check if this is a valid Steam callback
+        if (urlParams.has('openid.mode') && urlParams.has('openid.claimed_id')) {
+          await handleSteamCallback(urlParams);
+          setIsComplete(true);
+          // Redirect to main app after a short delay
+          setTimeout(() => {
+            window.history.replaceState({}, '', '/');
+          }, 1500);
+        } else {
+          // Not a Steam callback, redirect to main page
+          console.log('Not a Steam callback, redirecting to main page');
+          window.history.replaceState({}, '', '/');
+        }
+      } catch (error) {
+        console.error('Auth callback failed:', error);
+        setProcessingError(error);
+      }
+    };
+
+    processCallback();
+  }, [hasProcessed, handleSteamCallback]); // Include dependencies
+
+  const handleSwitchToDevMode = () => {
+    toggleAuthMode(); // Switch to development mode
+    window.history.replaceState({}, '', '/');
+  };
+
+  const finalError = error || processingError;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center bg-gray-800/60 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-2xl max-w-md"
+      >
+        {finalError ? (
+          <>
+            {finalError.switchToDevMode ? (
+              <Gamepad2 className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+            ) : (
+              <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            )}
+            <h2 className="text-xl font-bold text-white mb-2">
+              {finalError.switchToDevMode ? 'Steam Login Successful!' : 'Authentication Failed'}
+            </h2>
+            <p className={`text-sm mb-6 ${finalError.switchToDevMode ? 'text-gray-300' : 'text-red-400'}`}>
+              {finalError.message}
+            </p>
+            <div className="space-y-3">
+              {finalError.switchToDevMode && (
+                <button
+                  onClick={handleSwitchToDevMode}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 text-white px-6 py-3 rounded-lg transition-all font-medium"
+                >
+                  Switch to Development Mode
+                </button>
+              )}
+              <button
+                onClick={() => window.location.href = '/'}
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+              >
+                Return to Login
+              </button>
+            </div>
+          </>
+        ) : isComplete ? (
+          <>
+            <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-white mb-2">Authentication Complete!</h2>
+            <p className="text-gray-400 text-sm mb-4">Redirecting to your dashboard...</p>
+            <div className="flex items-center justify-center space-x-2">
+              <ChevronRight className="w-5 h-5 text-green-400" />
+              <span className="text-green-400 text-sm">Loading dashboard</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
+            >
+              <Shield className="w-10 h-10 text-white" />
+            </motion.div>
+            <h2 className="text-xl font-bold text-white mb-2">Processing Authentication</h2>
+            <p className="text-gray-400 text-sm mb-4">Fetching your Steam and Dota 2 data...</p>
+            <div className="flex items-center justify-center space-x-2">
+              <LoaderCircle className="w-5 h-5 animate-spin text-cyan-400" />
+              <span className="text-cyan-400 text-sm">Please wait</span>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </div>
+  );
+};
+
 // Main App Content Component
 const AppContent = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -1303,19 +1810,21 @@ const AppContent = () => {
   }
 
   return (
-    <Tooltip.Provider>
-      <div className="min-h-screen bg-gray-900">
-        <Navigation 
-          currentPage={currentPage} 
-          setCurrentPage={setCurrentPage}
-          mobileMenuOpen={mobileMenuOpen}
-          setMobileMenuOpen={setMobileMenuOpen}
-        />
-        <AnimatePresence mode="wait">
-          {renderPage()}
-        </AnimatePresence>
-      </div>
-    </Tooltip.Provider>
+    <DataProvider>
+      <Tooltip.Provider>
+        <div className="min-h-screen bg-gray-900">
+          <Navigation 
+            currentPage={currentPage} 
+            setCurrentPage={setCurrentPage}
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+          />
+          <AnimatePresence mode="wait">
+            {renderPage()}
+          </AnimatePresence>
+        </div>
+      </Tooltip.Provider>
+    </DataProvider>
   );
 };
 
@@ -1323,7 +1832,7 @@ const AppContent = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <SimpleRouter />
     </AuthProvider>
   );
 }
