@@ -38,10 +38,23 @@ const ASSET_PATHS = {
 export const getHeroIcon = (heroName, animated = false) => {
   debugLog(`Getting hero icon for: "${heroName}", animated: ${animated}`);
   
-  // Use simple path-based approach for Vite compatibility
-  const assetPath = `/src/assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.png`;
-  debugLog(`Generated hero asset path: ${assetPath}`);
-  return assetPath;
+  try {
+    // Use Vite-compatible asset URL generation
+    const assetPath = `../assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.png`;
+    const assetUrl = new URL(assetPath, import.meta.url).href;
+    debugLog(`Generated hero asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Error generating hero asset URL for "${heroName}":`, error);
+    // Fallback to default hero icon
+    try {
+      const fallbackPath = `../assets/heroes/icons/default.png`;
+      return new URL(fallbackPath, import.meta.url).href;
+    } catch (fallbackError) {
+      console.warn(`[ASSET WARNING] Failed to generate hero asset URL for "${heroName}":`, error);
+      return '';
+    }
+  }
 };
 
 /**
@@ -52,10 +65,23 @@ export const getHeroIcon = (heroName, animated = false) => {
 export const getAbilityIcon = (abilityName) => {
   debugLog(`Getting ability icon for: "${abilityName}"`);
   
-  // Use simple path-based approach for Vite compatibility
-  const assetPath = `/src/assets/abilities/${abilityName}.webp`;
-  debugLog(`Generated ability asset path: ${assetPath}`);
-  return assetPath;
+  try {
+    // Use Vite-compatible asset URL generation
+    const assetPath = `../assets/abilities/${abilityName}.webp`;
+    const assetUrl = new URL(assetPath, import.meta.url).href;
+    debugLog(`Generated ability asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Error generating ability asset URL for "${abilityName}":`, error);
+    // Fallback to default ability icon
+    try {
+      const fallbackPath = `../assets/abilities/ability_default.webp`;
+      return new URL(fallbackPath, import.meta.url).href;
+    } catch (fallbackError) {
+      console.warn(`[ASSET WARNING] Failed to generate ability asset URL for "${abilityName}":`, error);
+      return '';
+    }
+  }
 };
 
 /**
@@ -67,10 +93,23 @@ export const getAbilityIcon = (abilityName) => {
 export const getItemIcon = (itemName, format = 'webp') => {
   debugLog(`Getting item icon for: "${itemName}", format: ${format}`);
   
-  // Use simple path-based approach for Vite compatibility
-  const assetPath = `/src/assets/items/${itemName}.${format}`;
-  debugLog(`Generated item asset path: ${assetPath}`);
-  return assetPath;
+  try {
+    // Use Vite-compatible asset URL generation
+    const assetPath = `../assets/items/${itemName}.${format}`;
+    const assetUrl = new URL(assetPath, import.meta.url).href;
+    debugLog(`Generated item asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Error generating item asset URL for "${itemName}":`, error);
+    // Fallback to default item icon
+    try {
+      const fallbackPath = `../assets/items/item_default.${format}`;
+      return new URL(fallbackPath, import.meta.url).href;
+    } catch (fallbackError) {
+      console.warn(`[ASSET WARNING] Failed to generate item asset URL for "${itemName}":`, error);
+      return '';
+    }
+  }
 };
 
 /**
@@ -81,10 +120,17 @@ export const getItemIcon = (itemName, format = 'webp') => {
 export const getRuneIcon = (runeName) => {
   debugLog(`Getting rune icon for: "${runeName}"`);
   
-  // Use simple path-based approach for Vite compatibility
-  const assetPath = `/src/assets/runes/${runeName}.webp`;
-  debugLog(`Generated rune asset path: ${assetPath}`);
-  return assetPath;
+  try {
+    // Use Vite-compatible asset URL generation
+    const assetPath = `../assets/runes/${runeName}.webp`;
+    const assetUrl = new URL(assetPath, import.meta.url).href;
+    debugLog(`Generated rune asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Error generating rune asset URL for "${runeName}":`, error);
+    console.warn(`[ASSET WARNING] Failed to generate rune asset URL for "${runeName}":`, error);
+    return '';
+  }
 };
 
 /**
@@ -95,10 +141,17 @@ export const getRuneIcon = (runeName) => {
 export const getFacetIcon = (facetName) => {
   debugLog(`Getting facet icon for: "${facetName}"`);
   
-  // Use simple path-based approach for Vite compatibility
-  const assetPath = `/src/assets/facets/${facetName}.webp`;
-  debugLog(`Generated facet asset path: ${assetPath}`);
-  return assetPath;
+  try {
+    // Use Vite-compatible asset URL generation
+    const assetPath = `../assets/facets/${facetName}.webp`;
+    const assetUrl = new URL(assetPath, import.meta.url).href;
+    debugLog(`Generated facet asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Error generating facet asset URL for "${facetName}":`, error);
+    console.warn(`[ASSET WARNING] Failed to generate facet asset URL for "${facetName}":`, error);
+    return '';
+  }
 };
 
 /**
