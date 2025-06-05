@@ -121,55 +121,26 @@ import 'react-resizable/css/styles.css';
 - Widget refresh target: < 500ms
 - Memory usage target: < 50MB increase per session
 
-## Asset Management
+## Asset Management & Debugging
 
-**Dota 2 Game Assets (v4.6.0):**
-- Complete asset library from nimishchaudhari/dota2-assets repository
-- Hero icons (PNG format) in `src/assets/heroes/icons/`
-- Animated hero portraits in `src/assets/heroes/animated/`
-- Ability icons (WebP format) in `src/assets/abilities/`
-- Item icons (PNG/WebP formats) in `src/assets/items/`
-- Rune icons in `src/assets/runes/`
-- Hero facet icons in `src/assets/facets/`
+**Asset Structure:** Heroes (PNG), abilities (WebP), items (PNG/WebP), runes, facets in `src/assets/`
 
-**Asset Helper Utilities (Fixed v4.6.0):**
-- `src/utils/assetHelpers.js` provides Vite-compatible asset access functions
-- Uses `new URL('../assets/...', import.meta.url).href` for proper asset URLs
-- `getHeroIcon(heroName, animated)` for hero portraits with fallback to default
-- `getAbilityIcon(abilityName)` with fallback to ability_default
-- `getItemIcon(itemName, format)` with format fallback (webp → png → default)
-- `normalizeHeroName()` handles OpenDota API name mapping
-- Comprehensive debug logging with `DEBUG_ASSETS` flag
-- **Asset Test Page**: Navigate to `/asset-test` for debugging asset loading
-
-**Critical Asset Implementation:**
+**Asset Helper Functions (`src/utils/assetHelpers.js`):**
 ```javascript
-// ✅ CORRECT: Use new URL() with import.meta.url for Vite compatibility
+// ✅ CORRECT: Vite-compatible asset URLs
 const assetUrl = new URL(`../assets/heroes/icons/${heroName}.png`, import.meta.url).href;
 
-// ❌ WRONG: import.meta.glob() creates module URLs that don't work with <img> tags
-// const assets = import.meta.glob('/src/assets/**/*.png', { eager: true, as: 'url' });
+// Functions with fallbacks:
+getHeroIcon(heroName, animated) // → default fallback
+getAbilityIcon(abilityName)     // → ability_default fallback  
+getItemIcon(itemName, format)   // → format fallback → item_default
+normalizeHeroName(heroName)     // OpenDota API mapping
 ```
 
-## Debugging & Development Tools
-
-**Asset Verification System:**
-- Navigate to `/asset-test` to verify all asset loading
-- Real-time loading status with visual indicators
-- Debug information showing asset URLs and normalized names
-- Statistics showing loaded/failed asset counts
-
-**Debug Configuration:**
-```javascript
-// In assetHelpers.js
-const DEBUG_ASSETS = true; // Enable detailed asset logging
-// Console output: [ASSET DEBUG] messages for troubleshooting
-```
-
-**Simple Router Configuration:**
-- `/auth/steam/callback` - Steam OpenID callback handler
-- `/asset-test` - Asset verification page (no auth required)
-- Default route loads main application with authentication
+**Asset Debugging:**
+- `/asset-test` route - Visual asset verification with load status
+- `DEBUG_ASSETS = true` - Console logging for troubleshooting
+- Multi-level fallback system prevents broken images
 
 ## Changelog
 
