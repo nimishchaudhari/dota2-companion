@@ -291,10 +291,10 @@ const AssetTest = () => {
               'Shadow Fiend': normalizeHeroName('Shadow Fiend')
             },
             assetPaths: {
-              heroIcon: '/src/assets/heroes/icons/',
-              heroAnimated: '/src/assets/heroes/animated/',
-              item: '/src/assets/items/',
-              ability: '/src/assets/abilities/'
+              heroIcon: '/assets/heroes/icons/',
+              heroAnimated: '/assets/heroes/animated/',
+              item: '/assets/items/',
+              ability: '/assets/abilities/'
             }
           }, null, 2)}
         </pre>

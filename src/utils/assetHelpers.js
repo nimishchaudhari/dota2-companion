@@ -20,13 +20,13 @@ debugLog('Asset helper module initialized with Vite URL resolver');
 // Base paths for different asset categories
 const ASSET_PATHS = {
   heroes: {
-    icons: '/src/assets/heroes/icons',
-    animated: '/src/assets/heroes/animated'
+    icons: '/assets/heroes/icons',
+    animated: '/assets/heroes/animated'
   },
-  abilities: '/src/assets/abilities',
-  items: '/src/assets/items',
-  runes: '/src/assets/runes',
-  facets: '/src/assets/facets'
+  abilities: '/assets/abilities',
+  items: '/assets/items',
+  runes: '/assets/runes',
+  facets: '/assets/facets'
 };
 
 /**
@@ -39,17 +39,17 @@ export const getHeroIcon = (heroName, animated = false) => {
   debugLog(`Getting hero icon for: "${heroName}", animated: ${animated}`);
   
   try {
-    // Use Vite-compatible asset URL generation
-    const assetPath = `../assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.png`;
-    const assetUrl = new URL(assetPath, import.meta.url).href;
-    debugLog(`Generated hero asset URL: ${assetUrl}`);
-    return assetUrl;
+    // Use public asset path for Vite production builds
+    const assetPath = `/assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.${animated ? 'webm' : 'png'}`;
+    debugLog(`Generated hero asset URL: ${assetPath}`);
+    return assetPath;
   } catch (error) {
     debugLog(`Error generating hero asset URL for "${heroName}":`, error);
     // Fallback to default hero icon
     try {
-      const fallbackPath = `../assets/heroes/icons/default.png`;
-      return new URL(fallbackPath, import.meta.url).href;
+      const fallbackPath = `/assets/heroes/icons/default.png`;
+      debugLog(`Using fallback hero asset URL: ${fallbackPath}`);
+      return fallbackPath;
     } catch (fallbackError) {
       console.warn(`[ASSET WARNING] Failed to generate hero asset URL for "${heroName}":`, error);
       return '';
@@ -66,17 +66,17 @@ export const getAbilityIcon = (abilityName) => {
   debugLog(`Getting ability icon for: "${abilityName}"`);
   
   try {
-    // Use Vite-compatible asset URL generation
-    const assetPath = `../assets/abilities/${abilityName}.webp`;
-    const assetUrl = new URL(assetPath, import.meta.url).href;
-    debugLog(`Generated ability asset URL: ${assetUrl}`);
-    return assetUrl;
+    // Use public asset path for Vite production builds
+    const assetPath = `/assets/abilities/${abilityName}.webp`;
+    debugLog(`Generated ability asset URL: ${assetPath}`);
+    return assetPath;
   } catch (error) {
     debugLog(`Error generating ability asset URL for "${abilityName}":`, error);
     // Fallback to default ability icon
     try {
-      const fallbackPath = `../assets/abilities/ability_default.webp`;
-      return new URL(fallbackPath, import.meta.url).href;
+      const fallbackPath = `/assets/abilities/ability_default.webp`;
+      debugLog(`Using fallback ability asset URL: ${fallbackPath}`);
+      return fallbackPath;
     } catch (fallbackError) {
       console.warn(`[ASSET WARNING] Failed to generate ability asset URL for "${abilityName}":`, error);
       return '';
@@ -94,17 +94,17 @@ export const getItemIcon = (itemName, format = 'webp') => {
   debugLog(`Getting item icon for: "${itemName}", format: ${format}`);
   
   try {
-    // Use Vite-compatible asset URL generation
-    const assetPath = `../assets/items/${itemName}.${format}`;
-    const assetUrl = new URL(assetPath, import.meta.url).href;
-    debugLog(`Generated item asset URL: ${assetUrl}`);
-    return assetUrl;
+    // Use public asset path for Vite production builds
+    const assetPath = `/assets/items/${itemName}.${format}`;
+    debugLog(`Generated item asset URL: ${assetPath}`);
+    return assetPath;
   } catch (error) {
     debugLog(`Error generating item asset URL for "${itemName}":`, error);
     // Fallback to default item icon
     try {
-      const fallbackPath = `../assets/items/item_default.${format}`;
-      return new URL(fallbackPath, import.meta.url).href;
+      const fallbackPath = `/assets/items/item_default.${format}`;
+      debugLog(`Using fallback item asset URL: ${fallbackPath}`);
+      return fallbackPath;
     } catch (fallbackError) {
       console.warn(`[ASSET WARNING] Failed to generate item asset URL for "${itemName}":`, error);
       return '';
@@ -121,11 +121,10 @@ export const getRuneIcon = (runeName) => {
   debugLog(`Getting rune icon for: "${runeName}"`);
   
   try {
-    // Use Vite-compatible asset URL generation
-    const assetPath = `../assets/runes/${runeName}.webp`;
-    const assetUrl = new URL(assetPath, import.meta.url).href;
-    debugLog(`Generated rune asset URL: ${assetUrl}`);
-    return assetUrl;
+    // Use public asset path for Vite production builds
+    const assetPath = `/assets/runes/${runeName}.webp`;
+    debugLog(`Generated rune asset URL: ${assetPath}`);
+    return assetPath;
   } catch (error) {
     debugLog(`Error generating rune asset URL for "${runeName}":`, error);
     console.warn(`[ASSET WARNING] Failed to generate rune asset URL for "${runeName}":`, error);
@@ -142,11 +141,10 @@ export const getFacetIcon = (facetName) => {
   debugLog(`Getting facet icon for: "${facetName}"`);
   
   try {
-    // Use Vite-compatible asset URL generation
-    const assetPath = `../assets/facets/${facetName}.webp`;
-    const assetUrl = new URL(assetPath, import.meta.url).href;
-    debugLog(`Generated facet asset URL: ${assetUrl}`);
-    return assetUrl;
+    // Use public asset path for Vite production builds
+    const assetPath = `/assets/facets/${facetName}.webp`;
+    debugLog(`Generated facet asset URL: ${assetPath}`);
+    return assetPath;
   } catch (error) {
     debugLog(`Error generating facet asset URL for "${facetName}":`, error);
     console.warn(`[ASSET WARNING] Failed to generate facet asset URL for "${facetName}":`, error);

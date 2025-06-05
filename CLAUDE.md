@@ -143,12 +143,12 @@ import 'react-resizable/css/styles.css';
 
 ## Asset Management & Debugging
 
-**Asset Structure:** Heroes (PNG), abilities (WebP), items (PNG/WebP), runes, facets in `src/assets/`
+**Asset Structure:** Heroes (PNG), abilities (WebP), items (PNG/WebP), runes, facets in `public/assets/`
 
 **Asset Helper Functions (`src/utils/assetHelpers.js`):**
 ```javascript
-// ✅ CORRECT: Vite-compatible asset URLs
-const assetUrl = new URL(`../assets/heroes/icons/${heroName}.png`, import.meta.url).href;
+// ✅ CORRECT: Public asset paths for Vite production builds
+const assetPath = `/assets/heroes/icons/${heroName}.png`;
 
 // Functions with fallbacks:
 getHeroIcon(heroName, animated) // → default fallback
@@ -161,24 +161,24 @@ normalizeHeroName(heroName)     // OpenDota API mapping
 - `/asset-test` route - Visual asset verification with load status
 - `DEBUG_ASSETS = true` - Console logging for troubleshooting
 - Multi-level fallback system prevents broken images
+- Assets properly included in `dist/` folder during build
 
 ## Changelog
 
-### v4.6.0 - Asset Loading System Fix (June 5, 2025)
+### v4.6.1 - Production Asset Loading Fix (June 5, 2025)
 
-**Critical Asset Loading Resolution:**
-- **Fixed Asset URLs**: Replaced problematic `import.meta.glob()` with `new URL(path, import.meta.url).href`
-- **Vite Compatibility**: Assets now generate proper URLs that work with `<img src={}>` tags
-- **Debug System**: Added comprehensive debug logging with `DEBUG_ASSETS` flag
-- **Asset Test Page**: Created `/asset-test` route for systematic asset verification
-- **Enhanced Fallbacks**: Multi-level fallback system (format → default → path-based)
-- **Error Handling**: Proper try/catch with descriptive console warnings
-- **Performance**: Eliminated module import overhead for static assets
+**Critical Vercel Deployment Resolution:**
+- **Asset Location Fix**: Moved assets from `src/assets/` to `public/assets/` for proper Vite build inclusion
+- **URL Generation Update**: Changed asset helpers to use public paths (`/assets/...`) instead of relative imports
+- **Production Compatibility**: Assets now properly deploy to Vercel and other static hosts
+- **Complete Asset Coverage**: All hero icons, abilities, items, runes, and facets working in production
+- **Debug System**: Enhanced logging to track asset URL generation in production
+- **Fallback System**: Maintained robust fallback mechanism for missing assets
 
 **Technical Details:**
-- Root issue: `import.meta.glob()` created module URLs with `?import&url` parameters
-- Solution: Direct URL generation using Vite's `import.meta.url` resolver
-- Result: Assets load correctly without `net::ERR_FAILED` errors
+- Root issue: Vite only includes assets that are explicitly imported or in `public/` folder
+- Solution: Moved assets to `public/assets/` and updated helper functions to use absolute paths
+- Result: Assets properly included in `dist/` build and accessible in production deployments
 
 ### v4.5.0 - Complete Match Analysis Module (June 5, 2025)
 
