@@ -96,6 +96,8 @@ import 'react-resizable/css/styles.css';
 - Bundle size warnings are expected (~2.7MB due to Ant Design + charts)
 - React 19 requires careful migration of legacy patterns
 - Vite 6.x configuration may differ from earlier versions
+- **Asset URLs**: Always use `new URL(path, import.meta.url).href` for Vite asset compatibility
+- Use `/asset-test` route to debug asset loading issues
 
 ### Testing Considerations
 - All tests use real OpenDota API data
@@ -121,7 +123,7 @@ import 'react-resizable/css/styles.css';
 
 ## Asset Management
 
-**Dota 2 Game Assets (v4.4.0):**
+**Dota 2 Game Assets (v4.6.0):**
 - Complete asset library from nimishchaudhari/dota2-assets repository
 - Hero icons (PNG format) in `src/assets/heroes/icons/`
 - Animated hero portraits in `src/assets/heroes/animated/`
@@ -130,43 +132,62 @@ import 'react-resizable/css/styles.css';
 - Rune icons in `src/assets/runes/`
 - Hero facet icons in `src/assets/facets/`
 
-**Asset Helper Utilities:**
-- `src/utils/assetHelpers.js` provides standardized asset access functions
-- `getHeroIcon(heroName, animated)` for hero portraits
-- `getAbilityIcon(abilityName)` for ability icons with fallbacks
-- `getItemIcon(itemName, format)` for item icons
+**Asset Helper Utilities (Fixed v4.6.0):**
+- `src/utils/assetHelpers.js` provides Vite-compatible asset access functions
+- Uses `new URL('../assets/...', import.meta.url).href` for proper asset URLs
+- `getHeroIcon(heroName, animated)` for hero portraits with fallback to default
+- `getAbilityIcon(abilityName)` with fallback to ability_default
+- `getItemIcon(itemName, format)` with format fallback (webp → png → default)
 - `normalizeHeroName()` handles OpenDota API name mapping
-- Built-in fallback handling for missing assets
+- Comprehensive debug logging with `DEBUG_ASSETS` flag
+- **Asset Test Page**: Navigate to `/asset-test` for debugging asset loading
 
-## Latest Updates (v4.3.0)
+**Critical Asset Implementation:**
+```javascript
+// ✅ CORRECT: Use new URL() with import.meta.url for Vite compatibility
+const assetUrl = new URL(`../assets/heroes/icons/${heroName}.png`, import.meta.url).href;
 
-**Widget Header Size Reduction:**
-- All widget headers reduced to 40% of original size (14px font)
-- Subtitles reduced proportionally to 10px
-- Maintains professional appearance with more content space
+// ❌ WRONG: import.meta.glob() creates module URLs that don't work with <img> tags
+// const assets = import.meta.glob('/src/assets/**/*.png', { eager: true, as: 'url' });
+```
 
-**MMR Progression Widget Fix:**
-- Now calculates estimated MMR from match history (win/loss)
-- Shows progression based on last 20 matches
-- Displays current estimated MMR with trend indicators
+## Debugging & Development Tools
 
-**Recent Matches Widget Redesign:**
-- Widget-optimized design with compact match list
-- Hero avatars with win/loss border indicators  
-- Hover effects showing additional stats (GPM, XPM, Party)
-- Click functionality to open detailed match analysis
+**Asset Verification System:**
+- Navigate to `/asset-test` to verify all asset loading
+- Real-time loading status with visual indicators
+- Debug information showing asset URLs and normalized names
+- Statistics showing loaded/failed asset counts
 
-**Match Analysis Page:**
-- Comprehensive 5-tab analysis system:
-  - Overview: Team compositions and player statistics
-  - Performance: Combat metrics and efficiency ratings
-  - Items & Skills: Build progression and ability order
-  - Graphs: Gold/XP advantage over time
-  - Combat: Damage distribution and detailed combat stats
-- Professional dark theme consistency
-- Breadcrumb navigation back to dashboard
+**Debug Configuration:**
+```javascript
+// In assetHelpers.js
+const DEBUG_ASSETS = true; // Enable detailed asset logging
+// Console output: [ASSET DEBUG] messages for troubleshooting
+```
+
+**Simple Router Configuration:**
+- `/auth/steam/callback` - Steam OpenID callback handler
+- `/asset-test` - Asset verification page (no auth required)
+- Default route loads main application with authentication
 
 ## Changelog
+
+### v4.6.0 - Asset Loading System Fix (June 5, 2025)
+
+**Critical Asset Loading Resolution:**
+- **Fixed Asset URLs**: Replaced problematic `import.meta.glob()` with `new URL(path, import.meta.url).href`
+- **Vite Compatibility**: Assets now generate proper URLs that work with `<img src={}>` tags
+- **Debug System**: Added comprehensive debug logging with `DEBUG_ASSETS` flag
+- **Asset Test Page**: Created `/asset-test` route for systematic asset verification
+- **Enhanced Fallbacks**: Multi-level fallback system (format → default → path-based)
+- **Error Handling**: Proper try/catch with descriptive console warnings
+- **Performance**: Eliminated module import overhead for static assets
+
+**Technical Details:**
+- Root issue: `import.meta.glob()` created module URLs with `?import&url` parameters
+- Solution: Direct URL generation using Vite's `import.meta.url` resolver
+- Result: Assets load correctly without `net::ERR_FAILED` errors
 
 ### v4.5.0 - Complete Match Analysis Module (June 5, 2025)
 
