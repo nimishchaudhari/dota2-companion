@@ -9,7 +9,7 @@ import {
   AimOutlined
 } from '@ant-design/icons';
 import { useData } from '../../../contexts/DataContext.jsx';
-import { AuthContext } from '../../../contexts/AuthContext.js';
+import { AuthContext } from '../../../contexts/AuthContext.jsx';
 import { calculateCoreMetrics } from '../../../utils/dataTransforms.js';
 import { gamingColors } from '../../../theme/antdTheme.js';
 import { getRankIcon, getItemIcon } from '../../../utils/assetHelpers.js';

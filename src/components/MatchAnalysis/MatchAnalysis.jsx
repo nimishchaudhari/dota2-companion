@@ -16,7 +16,7 @@ import {
 } from '@ant-design/icons';
 import { Line, Bar, Pie, Radar, Area, Column } from '@ant-design/plots';
 import { gamingColors } from '../../theme/antdTheme.js';
-import { AuthContext } from '../../contexts/AuthContext.js';
+import { AuthContext } from '../../contexts/AuthContext.jsx';
 import authService from '../../services/auth.service.js';
 import { 
   getHeroIcon, 

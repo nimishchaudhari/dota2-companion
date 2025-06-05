@@ -1,7 +1,7 @@
 import { render, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from 'antd';
-import { AuthContext } from '../../contexts/AuthContext.js';
+import { AuthContext } from '../../contexts/AuthContext.jsx';
 import { DataProvider } from '../../contexts/DataContext.jsx';
 import { darkTheme } from '../../theme/antdTheme.js';
 

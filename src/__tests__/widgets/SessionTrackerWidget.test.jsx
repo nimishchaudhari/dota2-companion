@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DataProvider } from '../../contexts/DataContext.jsx';
-import { AuthContext } from '../../contexts/AuthContext.js';
+import { AuthContext } from '../../contexts/AuthContext.jsx';
 import SessionTrackerWidget from '../../components/Dashboard/widgets/SessionTrackerWidget.jsx';
 
 const mockAuthContext = {

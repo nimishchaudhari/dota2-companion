@@ -17,7 +17,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import { useData } from '../../contexts/DataContext.jsx';
-import { AuthContext } from '../../contexts/AuthContext.js';
+import { AuthContext } from '../../contexts/AuthContext.jsx';
 import { useContext } from 'react';
 import WidgetWrapper from './WidgetWrapper.jsx';
 import WidgetLibrary, { WIDGET_DEFINITIONS } from './WidgetLibrary.jsx';
