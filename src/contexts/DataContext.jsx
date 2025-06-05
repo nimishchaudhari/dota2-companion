@@ -40,14 +40,9 @@ export const DataProvider = ({ children }) => {
   };
 
   const fetchAllData = useCallback(async () => {
-    console.log('[DataContext] fetchAllData called', { user, isAuthenticated, accountId: user?.accountId });
-    if (!user?.accountId) {
-      console.log('[DataContext] No user or accountId, skipping data fetch');
-      return;
-    }
+    if (!user?.accountId) return;
 
     const accountId = user.accountId;
-    console.log('[DataContext] Starting data fetch for accountId:', accountId);
     
     // Set all loading states
     setLoading({
@@ -115,12 +110,9 @@ export const DataProvider = ({ children }) => {
 
   // Fetch all dashboard data when user changes
   useEffect(() => {
-    console.log('[DataContext] useEffect triggered', { isAuthenticated, user, accountId: user?.accountId });
     if (isAuthenticated && user?.accountId) {
-      console.log('[DataContext] User authenticated with accountId, calling fetchAllData');
       fetchAllData();
     } else {
-      console.log('[DataContext] User not authenticated or no accountId, resetting data');
       resetData();
     }
   }, [isAuthenticated, user?.accountId, fetchAllData]);
