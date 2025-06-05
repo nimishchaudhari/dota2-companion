@@ -2,12 +2,41 @@ import React, { useState, useEffect, useContext, useMemo, useCallback } from 're
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
+  ConfigProvider, 
+  App as AntApp, 
+  Layout, 
+  Menu, 
+  Space, 
+  Avatar, 
+  Dropdown, 
+  Badge, 
+  Button, 
+  Tooltip,
+  notification
+} from 'antd';
+import {
+  HomeOutlined,
+  TrophyOutlined,
+  TeamOutlined,
+  ThunderboltOutlined,
+  SettingOutlined,
+  LogoutOutlined,
+  ReloadOutlined,
+  UserOutlined,
+  MenuOutlined,
+  CloseOutlined
+} from '@ant-design/icons';
+import { darkTheme } from './theme/antdTheme.js';
+import MatchAnalysis from './components/MatchAnalysis/MatchAnalysis.jsx';
+
+const { Header, Content, Sider } = Layout;
+import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import { 
-  Home, Swords, Shield, Users, Trophy, Settings, Menu, X, ChevronRight, 
+  Home, Swords, Shield, Users, Trophy, Settings, Menu as LucideMenu, X, ChevronRight, 
   TrendingUp, Clock, Target, Activity, Star, Zap, User, Gamepad2,
   ArrowUp, ArrowDown, Minus, Eye, Flame, Coins, Heart, Calendar,
   Filter, RotateCcw, Award, AlertTriangle, Brain, Timer, Crosshair,
@@ -16,12 +45,14 @@ import {
   Monitor, Laptop, Smartphone, Lock, Mail, EyeOff, LoaderCircle
 } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import * as RadixTooltip from '@radix-ui/react-tooltip';
 import * as Dialog from '@radix-ui/react-dialog';
 import { clsx } from 'clsx';
 import authService from './services/auth.service.js';
 import { DataProvider, useData } from './contexts/DataContext.jsx';
 import { AuthContext } from './contexts/AuthContext.js';
+import AntDashboard from './components/Dashboard/AntDashboard.jsx';
+import './styles/dashboard.css';
 import {
   transformMatches,
   transformHeroStats,
@@ -263,16 +294,17 @@ const AnimatedNumber = ({ value, duration = 1000, prefix = '', suffix = '' }) =>
   return <span>{prefix}{displayValue.toLocaleString()}{suffix}</span>;
 };
 
-// Navigation Component  
+// Ant Design Navigation Component  
 const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenuOpen }) => {
   const { user, logout, refreshUserData, isLoading } = useAuth();
-  const navItems = [
-    { id: 'dashboard', icon: Home, label: 'Dashboard' },
-    { id: 'matches', icon: Swords, label: 'Matches' },
-    { id: 'heroes', icon: Shield, label: 'Heroes' },
-    { id: 'live', icon: Activity, label: 'Live Game' },
-    { id: 'pro', icon: Trophy, label: 'Pro Scene' },
-    { id: 'draft', icon: Users, label: 'Draft' }
+  
+  const menuItems = [
+    { key: 'dashboard', icon: <HomeOutlined />, label: 'Dashboard' },
+    { key: 'matches', icon: <TrophyOutlined />, label: 'Matches' },
+    { key: 'heroes', icon: <TeamOutlined />, label: 'Heroes' },
+    { key: 'live', icon: <ThunderboltOutlined />, label: 'Live Game' },
+    { key: 'pro', icon: <TrophyOutlined />, label: 'Pro Scene' },
+    { key: 'draft', icon: <TeamOutlined />, label: 'Draft' }
   ];
 
   const handleLogout = () => {
@@ -282,172 +314,140 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
   const handleRefresh = async () => {
     try {
       await refreshUserData();
+      notification.success({
+        message: 'Data Refreshed',
+        description: 'Player data has been successfully updated.',
+        placement: 'topRight',
+      });
     } catch (error) {
       console.error('Failed to refresh data:', error);
+      notification.error({
+        message: 'Refresh Failed',
+        description: 'Unable to refresh player data. Please try again.',
+        placement: 'topRight',
+      });
     }
   };
 
+  const userMenuItems = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Profile',
+    },
+    {
+      key: 'settings',
+      icon: <SettingOutlined />,
+      label: 'Settings',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Logout',
+      onClick: handleLogout,
+    },
+  ];
+
   return (
-    <>
-      {/* Desktop Navigation */}
-      <nav className="hidden md:flex items-center justify-between bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700 px-6 py-4">
-        <div className="flex items-center space-x-8">
-          <div className="flex items-center space-x-3">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center"
-            >
-              <Shield className="w-6 h-6 text-white" />
-            </motion.div>
-            <h1 className="text-xl font-bold text-white">Dota 2 Companion</h1>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {navItems.map((item) => (
-              <motion.button
-                key={item.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setCurrentPage(item.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                  currentPage === item.id
-                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700/50'
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="flex items-center space-x-3 bg-gray-800 rounded-lg px-4 py-2 cursor-pointer"
-              >
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm text-gray-300">{user?.personaName || user?.displayName || 'Player'}</span>
-                  <span className="text-xs text-gray-500">
-                    {user?.authMode === 'development' ? `ID: ${user?.accountId}` : `#${user?.steamId || '12345'}`}
-                  </span>
-                </div>
-              </motion.div>
-            </Tooltip.Trigger>
-            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
-              View Profile
-            </Tooltip.Content>
-          </Tooltip.Root>
-          
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className={`p-2 transition-colors ${
-                  isLoading 
-                    ? 'text-gray-600 cursor-not-allowed' 
-                    : 'text-gray-400 hover:text-cyan-400'
-                }`}
-              >
-                <RotateCcw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-              </motion.button>
-            </Tooltip.Trigger>
-            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
-              {isLoading ? 'Refreshing...' : 'Refresh Data'}
-            </Tooltip.Content>
-          </Tooltip.Root>
-          
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="p-2 text-gray-400 hover:text-white"
-              >
-                <Settings className="w-5 h-5" />
-              </motion.button>
-            </Tooltip.Trigger>
-            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
-              Settings
-            </Tooltip.Content>
-          </Tooltip.Root>
-          
-          <Tooltip.Root>
-            <Tooltip.Trigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleLogout}
-                className="p-2 text-red-400 hover:text-red-300 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </motion.button>
-            </Tooltip.Trigger>
-            <Tooltip.Content className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm border border-gray-700">
-              Logout
-            </Tooltip.Content>
-          </Tooltip.Root>
-        </div>
-      </nav>
-
-      {/* Mobile Navigation */}
-      <nav className="md:hidden bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-lg font-bold text-white">Dota 2</h1>
-          </div>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-gray-300"
+    <Header className="bg-gray-900 border-b border-gray-700 px-6 py-0 h-16 flex items-center justify-between">
+      {/* Logo and Brand */}
+      <div className="flex items-center space-x-8">
+        <div className="flex items-center space-x-3">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center"
           >
-            {mobileMenuOpen ? <X /> : <Menu />}
-          </button>
+            <Shield className="w-6 h-6 text-white" />
+          </motion.div>
+          <h1 className="text-xl font-bold text-white">Dota 2 Command Center</h1>
         </div>
+        
+        {/* Desktop Menu */}
+        <div className="hidden md:block">
+          <Menu
+            mode="horizontal"
+            selectedKeys={[currentPage]}
+            onClick={({ key }) => setCurrentPage(key)}
+            items={menuItems}
+            className="bg-transparent border-none"
+            style={{
+              backgroundColor: 'transparent',
+              color: 'white',
+              fontSize: '14px'
+            }}
+          />
+        </div>
+      </div>
 
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="mt-4 space-y-2 overflow-hidden"
-            >
-              {navItems.map((item) => (
-                <motion.button
-                  key={item.id}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setCurrentPage(item.id);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                    currentPage === item.id
-                      ? 'bg-cyan-500/20 text-cyan-400'
-                      : 'text-gray-300'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                </motion.button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
-    </>
+      {/* User Actions */}
+      <Space size="middle">
+        {/* Mobile Menu Button */}
+        <Button
+          type="text"
+          icon={mobileMenuOpen ? <CloseOutlined /> : <MenuOutlined />}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden text-white"
+        />
+        
+        {/* Refresh Button */}
+        <Tooltip title={isLoading ? 'Refreshing...' : 'Refresh Data'}>
+          <Button
+            type="text"
+            icon={<ReloadOutlined spin={isLoading} />}
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="text-gray-400 hover:text-cyan-400"
+          />
+        </Tooltip>
+        
+        {/* User Profile Dropdown */}
+        <Dropdown
+          menu={{ items: userMenuItems }}
+          placement="bottomRight"
+          trigger={['click']}
+        >
+          <div className="flex items-center space-x-3 bg-gray-800 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors">
+            <Avatar
+              size={32}
+              icon={<UserOutlined />}
+              className="bg-gradient-to-br from-purple-500 to-pink-600"
+            />
+            <div className="hidden sm:flex flex-col">
+              <span className="text-sm text-gray-300 font-medium">
+                {user?.personaName || user?.displayName || 'Player'}
+              </span>
+              <span className="text-xs text-gray-500">
+                {user?.authMode === 'development' ? `ID: ${user?.accountId}` : `#${user?.steamId || '12345'}`}
+              </span>
+            </div>
+          </div>
+        </Dropdown>
+      </Space>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden absolute top-16 left-0 right-0 bg-gray-900 border-b border-gray-700 z-50">
+          <Menu
+            mode="vertical"
+            selectedKeys={[currentPage]}
+            onClick={({ key }) => {
+              setCurrentPage(key);
+              setMobileMenuOpen(false);
+            }}
+            items={menuItems}
+            className="bg-gray-900 border-none"
+            style={{
+              backgroundColor: '#111827',
+              color: 'white'
+            }}
+          />
+        </div>
+      )}
+    </Header>
   );
 };
 
@@ -914,7 +914,7 @@ const CommandCenterDashboard = () => {
   }, [recentMatches, heroes]);
 
   return (
-    <Tooltip.Provider>
+    <RadixTooltip.Provider>
       <motion.div
         variants={pageTransition}
         initial="initial"
@@ -1408,12 +1408,14 @@ const CommandCenterDashboard = () => {
           </div>
         </div>
       </motion.div>
-    </Tooltip.Provider>
+    </RadixTooltip.Provider>
   );
 };
 
-// Update the main PlayerDashboard reference to use the new CommandCenterDashboard
-const PlayerDashboard = CommandCenterDashboard;
+// Use AntDashboard as the main dashboard component
+const PlayerDashboard = ({ onMatchClick }) => {
+  return <AntDashboard onMatchClick={onMatchClick} />;
+};
 
 // Loading Component
 const LoadingScreen = () => {
@@ -1582,16 +1584,36 @@ const AppContent = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedMatchId, setSelectedMatchId] = useState(null);
 
   // Show loading screen while checking authentication
   if (isLoading) {
     return <LoadingScreen />;
   }
 
+  const handleMatchClick = (matchId) => {
+    setSelectedMatchId(matchId);
+    setCurrentPage('match-analysis');
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedMatchId(null);
+    setCurrentPage('dashboard');
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <PlayerDashboard />;
+        return <PlayerDashboard onMatchClick={handleMatchClick} />;
+      case 'match-analysis':
+        return selectedMatchId ? (
+          <MatchAnalysis 
+            matchId={selectedMatchId} 
+            onBack={handleBackToDashboard} 
+          />
+        ) : (
+          <PlayerDashboard onMatchClick={handleMatchClick} />
+        );
       case 'matches':
         return <div className="p-6 text-electric-cyan font-header">MATCHES PAGE COMING SOON...</div>;
       case 'heroes':
@@ -1603,7 +1625,7 @@ const AppContent = () => {
       case 'pro':
         return <div className="p-6 text-electric-cyan font-header">PRO SCENE PAGE COMING SOON...</div>;
       default:
-        return <PlayerDashboard />;
+        return <PlayerDashboard onMatchClick={handleMatchClick} />;
     }
   };
 
@@ -1613,19 +1635,17 @@ const AppContent = () => {
 
   return (
     <DataProvider>
-      <Tooltip.Provider>
-        <div className="min-h-screen bg-space-black">
-          <Navigation 
-            currentPage={currentPage} 
-            setCurrentPage={setCurrentPage}
-            mobileMenuOpen={mobileMenuOpen}
-            setMobileMenuOpen={setMobileMenuOpen}
-          />
-          <AnimatePresence mode="wait">
-            {renderPage()}
-          </AnimatePresence>
-        </div>
-      </Tooltip.Provider>
+      <Layout className="min-h-screen">
+        <Navigation 
+          currentPage={currentPage} 
+          setCurrentPage={setCurrentPage}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+        />
+        <AnimatePresence mode="wait">
+          {renderPage()}
+        </AnimatePresence>
+      </Layout>
     </DataProvider>
   );
 };
@@ -1633,8 +1653,12 @@ const AppContent = () => {
 // Main App Component with Auth Provider
 export default function App() {
   return (
-    <AuthProvider>
-      <SimpleRouter />
-    </AuthProvider>
+    <ConfigProvider theme={darkTheme}>
+      <AntApp>
+        <AuthProvider>
+          <SimpleRouter />
+        </AuthProvider>
+      </AntApp>
+    </ConfigProvider>
   );
 }

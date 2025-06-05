@@ -87,7 +87,8 @@ export const transformMatches = (matches, heroMap = {}) => {
       hero: hero?.localized_name || hero?.name || `Hero ${match.hero_id}`,
       heroIcon: hero ? `https://cdn.dota2.com${hero.icon}` : null,
       result: playerWin ? 'Victory' : 'Defeat',
-      kda: `${match.kills || 0}/${match.deaths || 0}/${match.assists || 0}`,
+      kda: ((match.kills || 0) + (match.assists || 0)) / Math.max((match.deaths || 1), 1),
+      kdaString: `${match.kills || 0}/${match.deaths || 0}/${match.assists || 0}`,
       gpm: match.gold_per_min || 0,
       xpm: match.xp_per_min || 0,
       duration: formatDuration(match.duration || 0),
@@ -196,7 +197,9 @@ export const transformHeroStats = (heroes, heroMap = {}) => {
         icon: heroData ? `https://cdn.dota2.com${heroData.icon}` : null,
         matches: hero.games,
         winrate: Math.round(winrate),
-        kda: `${(hero.sum_kills/hero.games || 0).toFixed(1)}/${(hero.sum_deaths/hero.games || 0).toFixed(1)}/${(hero.sum_assists/hero.games || 0).toFixed(1)}`,
+        kda: ((hero.sum_kills/hero.games || 0) + (hero.sum_assists/hero.games || 0)) / Math.max((hero.sum_deaths/hero.games || 1), 1),
+        kdaString: `${(hero.sum_kills/hero.games || 0).toFixed(1)}/${(hero.sum_deaths/hero.games || 0).toFixed(1)}/${(hero.sum_assists/hero.games || 0).toFixed(1)}`,
+        hero_id: hero.hero_id,
         gpm: Math.round(hero.sum_gold_per_min / hero.games || 0),
         xpm: Math.round(hero.sum_xp_per_min / hero.games || 0),
         lastHits: Math.round(hero.sum_last_hits / hero.games || 0),
@@ -326,5 +329,5 @@ export const getDefaultMetrics = () => [
 ];
 
 export const getDefaultHeroStats = () => [
-  { name: 'No Data', matches: 0, winrate: 0, kda: '0/0/0' }
+  { name: 'No Data', matches: 0, winrate: 0, kda: 0, kdaString: '0/0/0' }
 ];

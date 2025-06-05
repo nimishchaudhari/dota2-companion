@@ -125,17 +125,19 @@ export const DataProvider = ({ children }) => {
       const response = await fetch('https://api.opendota.com/api/heroes');
       if (!response.ok) throw new Error('Failed to fetch heroes');
       
-      const heroes = await response.json();
-      const heroMap = heroes.reduce((acc, hero) => {
+      const heroesArray = await response.json();
+      const heroMap = heroesArray.reduce((acc, hero) => {
         acc[hero.id] = hero;
         return acc;
       }, {});
       
-      authService.setCacheItem('heroes_mapping', heroMap);
-      return heroMap;
+      // Cache both the array and the map
+      const heroData = { array: heroesArray, map: heroMap };
+      authService.setCacheItem('heroes_mapping', heroData);
+      return heroData;
     } catch (error) {
       console.error('Failed to fetch heroes:', error);
-      return {};
+      return { array: [], map: {} };
     }
   };
 
@@ -200,6 +202,9 @@ export const DataProvider = ({ children }) => {
     <DataContext.Provider value={{
       // Raw data
       ...data,
+      // Provide heroes as both array and map for compatibility
+      heroes: data.heroes?.array || [],
+      heroMap: data.heroes?.map || {},
       
       // Loading states
       loading,
@@ -215,11 +220,13 @@ export const DataProvider = ({ children }) => {
       
       // Helper functions
       getHeroName: (heroId) => {
-        return data.heroes?.[heroId]?.localized_name || data.heroes?.[heroId]?.name || `Hero ${heroId}`;
+        const heroMap = data.heroes?.map || {};
+        return heroMap[heroId]?.localized_name || heroMap[heroId]?.name || `Hero ${heroId}`;
       },
       
       getHeroIcon: (heroId) => {
-        const hero = data.heroes?.[heroId];
+        const heroMap = data.heroes?.map || {};
+        const hero = heroMap[heroId];
         return hero ? `https://cdn.dota2.com${hero.icon}` : null;
       }
     }}>

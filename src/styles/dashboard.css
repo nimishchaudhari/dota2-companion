@@ -1,0 +1,187 @@
+/* Dashboard Grid Layout Styles */
+.dashboard-grid {
+  background: transparent;
+}
+
+.dashboard-widget {
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* React Grid Layout overrides */
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.react-grid-item.resizing {
+  transition: none;
+  z-index: 10;
+  will-change: width, height;
+}
+
+.react-grid-item.dragging {
+  transition: none;
+  z-index: 20;
+  will-change: transform;
+  cursor: move;
+}
+
+.react-grid-item.dropping {
+  visibility: hidden;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: rgba(0, 217, 255, 0.2);
+  opacity: 0.5;
+  transition-duration: 100ms;
+  z-index: 2;
+  border-radius: 8px;
+  border: 2px dashed rgba(0, 217, 255, 0.5);
+}
+
+/* Resize handle styling */
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+  z-index: 10;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-right: 2px solid rgba(0, 217, 255, 0.6);
+  border-bottom: 2px solid rgba(0, 217, 255, 0.6);
+}
+
+/* Widget drag handle */
+.widget-drag-handle {
+  cursor: move;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.widget-drag-handle:hover {
+  color: #00d9ff;
+}
+
+/* Widget wrapper styles */
+.ant-card.widget-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: rgba(20, 20, 20, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 217, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.ant-card.widget-card:hover {
+  border-color: rgba(0, 217, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 217, 255, 0.1);
+}
+
+.ant-card.widget-card .ant-card-head {
+  background: rgba(10, 10, 10, 0.8);
+  border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+  padding: 12px 16px;
+  min-height: auto;
+}
+
+.ant-card.widget-card .ant-card-body {
+  flex: 1;
+  padding: 16px;
+  overflow: auto;
+}
+
+/* Widget Library Modal styles */
+.widget-library-modal .ant-modal-content {
+  background: #141414;
+  border: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.widget-library-modal .ant-modal-header {
+  background: #0a0a0a;
+  border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.widget-library-modal .ant-modal-title {
+  color: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .react-grid-item {
+    transition: none !important;
+  }
+  
+  .dashboard-widget {
+    margin-bottom: 16px;
+  }
+}
+
+/* Ant Design component overrides for dashboard */
+.ant-statistic-title {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ant-statistic-content {
+  color: #00d9ff;
+}
+
+.ant-progress-text {
+  color: #fff !important;
+}
+
+.ant-table-wrapper .ant-table {
+  background: transparent;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: rgba(26, 26, 26, 0.8);
+  border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(48, 48, 48, 0.5);
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: rgba(38, 38, 38, 0.5);
+}
+
+/* Chart container styles */
+.ant-chart-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Performance optimization */
+.dashboard-widget * {
+  will-change: auto;
+}
+
+.dashboard-widget.dragging *,
+.dashboard-widget.resizing * {
+  will-change: transform;
+}
