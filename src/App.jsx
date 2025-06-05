@@ -27,8 +27,10 @@ import {
   CloseOutlined
 } from '@ant-design/icons';
 import { darkTheme } from './theme/antdTheme.js';
+import envConfig from './config/envConfig.js';
 import MatchAnalysis from './components/MatchAnalysis/MatchAnalysis.jsx';
 import AssetTest from './components/AssetTest.jsx';
+import ConfigStatus from './components/ConfigStatus.jsx';
 
 const { Header, Content, Sider } = Layout;
 import { 
@@ -70,9 +72,7 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [authMode, setAuthMode] = useState(
-    import.meta.env.VITE_AUTH_MODE || 'development'
-  );
+  const [authMode, setAuthMode] = useState(envConfig.auth.mode);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -1464,6 +1464,11 @@ const SimpleRouter = () => {
     return <AssetTest />;
   }
   
+  if (path === '/config-status') {
+    // Environment configuration status page (no auth required)
+    return <ConfigStatus />;
+  }
+  
   return <AppContent />;
 };
 
@@ -1591,6 +1596,47 @@ const AppContent = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState(null);
+
+  // Show configuration notifications on app start
+  useEffect(() => {
+    if (!envConfig.isFullyConfigured()) {
+      const suggestions = envConfig.getConfigurationSuggestions();
+      
+      suggestions.forEach((suggestion, index) => {
+        setTimeout(() => {
+          if (suggestion.type === 'warning') {
+            notification.warning({
+              message: 'Configuration Warning',
+              description: (
+                <div>
+                  <p>{suggestion.message}</p>
+                  <p><strong>Action:</strong> {suggestion.action}</p>
+                  <p><strong>Impact:</strong> {suggestion.impact}</p>
+                  <p><a href="/config-status" target="_blank">Open Configuration Helper →</a></p>
+                </div>
+              ),
+              duration: 0, // Don't auto-close
+              placement: 'topRight',
+            });
+          } else {
+            notification.info({
+              message: 'Configuration Info',
+              description: (
+                <div>
+                  <p>{suggestion.message}</p>
+                  <p><strong>Action:</strong> {suggestion.action}</p>
+                  <p><strong>Impact:</strong> {suggestion.impact}</p>
+                  <p><a href="/config-status" target="_blank">Open Configuration Helper →</a></p>
+                </div>
+              ),
+              duration: 10,
+              placement: 'topRight',
+            });
+          }
+        }, index * 1000); // Stagger notifications
+      });
+    }
+  }, []);
 
   // Show loading screen while checking authentication
   if (isLoading) {

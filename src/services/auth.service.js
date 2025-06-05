@@ -1,12 +1,14 @@
 // Authentication Service for Steam and OpenDota API integration
+import envConfig from '../config/envConfig.js';
 
 class AuthService {
   constructor() {
-    this.baseUrl = import.meta.env.VITE_OPENDOTA_API_URL || 'https://api.opendota.com/api';
-    this.steamApiUrl = import.meta.env.VITE_STEAM_API_URL || 'https://api.steampowered.com';
-    this.openDotaApiKey = import.meta.env.VITE_OPENDOTA_API_KEY;
+    // Use environment configuration service
+    this.baseUrl = envConfig.opendota.apiUrl;
+    this.steamApiUrl = envConfig.steam.apiUrl;
+    this.openDotaApiKey = envConfig.opendota.apiKey;
     this.cache = new Map();
-    this.cacheTTL = parseInt(import.meta.env.VITE_CACHE_TTL) || 300000; // 5 minutes default
+    this.cacheTTL = envConfig.cache.ttl;
     
     // Log API key status for debugging
     if (this.openDotaApiKey) {
@@ -14,7 +16,19 @@ class AuthService {
       console.log('[AUTH SERVICE] Enhanced rate limits enabled (60,000 requests/hour)');
     } else {
       console.log('[AUTH SERVICE] No OpenDota API key configured - using free tier limits (60 requests/minute)');
-      console.log('[AUTH SERVICE] Add VITE_OPENDOTA_API_KEY to .env.local to enable enhanced limits');
+      console.log('[AUTH SERVICE] Add VITE_OPENDOTA_API_KEY to environment variables to enable enhanced limits');
+      
+      // Show configuration suggestions
+      const suggestions = envConfig.getConfigurationSuggestions();
+      if (suggestions.length > 0) {
+        console.group('[AUTH SERVICE] Configuration Suggestions:');
+        suggestions.forEach(suggestion => {
+          console.log(`${suggestion.type.toUpperCase()}: ${suggestion.message}`);
+          console.log(`Action: ${suggestion.action}`);
+          console.log(`Impact: ${suggestion.impact}`);
+        });
+        console.groupEnd();
+      }
     }
   }
 
@@ -34,14 +48,8 @@ class AuthService {
 
   // Helper method to construct API URLs with optional API key
   buildApiUrl(endpoint) {
-    const url = new URL(`${this.baseUrl}${endpoint}`);
-    
-    // Add API key if available
-    if (this.openDotaApiKey) {
-      url.searchParams.append('api_key', this.openDotaApiKey);
-    }
-    
-    return url.toString();
+    // Use the envConfig helper method for consistent URL building
+    return envConfig.buildOpenDotaUrl(endpoint);
   }
 
   // Cache management
@@ -265,8 +273,8 @@ class AuthService {
     const params = new URLSearchParams({
       'openid.ns': 'http://specs.openid.net/auth/2.0',
       'openid.mode': 'checkid_setup',
-      'openid.return_to': import.meta.env.VITE_STEAM_RETURN_URL || `${window.location.origin}/auth/steam/callback`,
-      'openid.realm': import.meta.env.VITE_STEAM_REALM || window.location.origin,
+      'openid.return_to': envConfig.steam.returnUrl,
+      'openid.realm': envConfig.steam.realm,
       'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
       'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
     });
@@ -336,7 +344,7 @@ class AuthService {
 
   // Fetch Steam profile (requires API key)
   async fetchSteamProfile(steamId) {
-    const apiKey = import.meta.env.VITE_STEAM_API_KEY;
+    const apiKey = envConfig.steam.apiKey;
     if (!apiKey) {
       console.warn('Steam API key not configured');
       return null;
