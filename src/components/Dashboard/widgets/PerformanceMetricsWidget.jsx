@@ -12,12 +12,17 @@ import { useData } from '../../../contexts/DataContext.jsx';
 import { AuthContext } from '../../../contexts/AuthContext.js';
 import { calculateCoreMetrics } from '../../../utils/dataTransforms.js';
 import { gamingColors } from '../../../theme/antdTheme.js';
+import { getRankIcon, getItemIcon } from '../../../utils/assetHelpers.js';
 
 const { Title, Text } = Typography;
 
 export const PerformanceMetricsWidget = () => {
-  const { recentMatches, winLoss, loading } = useData();
+  const { recentMatches, winLoss, loading, user: dataUser } = useData();
   const { user } = React.useContext(AuthContext);
+  
+  // Get rank tier from data context user or auth context user
+  const currentUser = dataUser || user;
+  const rankTier = currentUser?.rank_tier || currentUser?.solo_competitive_rank || null;
 
   const metrics = useMemo(() => {
     if (!recentMatches || !winLoss) {
@@ -65,9 +70,19 @@ export const PerformanceMetricsWidget = () => {
     <div className="h-full">
       {/* Header */}
       <div className="mb-4">
-        <Title level={5} className="text-white m-0" style={{ fontSize: '14px' }}>
-          PERFORMANCE METRICS
-        </Title>
+        <div className="flex items-center space-x-2 mb-1">
+          {rankTier && (
+            <img 
+              src={getRankIcon(rankTier)} 
+              alt="Player Rank" 
+              className="w-5 h-5" 
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          )}
+          <Title level={5} className="text-white m-0" style={{ fontSize: '14px' }}>
+            PERFORMANCE METRICS
+          </Title>
+        </div>
         <Text type="secondary" className="uppercase tracking-wider" style={{ fontSize: '10px' }}>
           Core statistics overview
         </Text>
@@ -118,9 +133,17 @@ export const PerformanceMetricsWidget = () => {
           variant="outlined"
         >
           <div className="flex justify-between items-center mb-4">
-            <Title level={5} className="text-white m-0">
-              Overall Performance Score
-            </Title>
+            <div className="flex items-center space-x-2">
+              <img 
+                src={getItemIcon('aegis')} 
+                alt="Performance Score" 
+                className="w-4 h-4" 
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              <Title level={5} className="text-white m-0">
+                Overall Performance Score
+              </Title>
+            </div>
             <Text type="secondary">
               Based on last 10 games
             </Text>

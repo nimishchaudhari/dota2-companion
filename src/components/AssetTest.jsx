@@ -9,16 +9,17 @@ const AssetTest = () => {
   const [assetStatus, setAssetStatus] = useState({});
   const [loading, setLoading] = useState({});
 
-  // Test data
-  const popularHeroes = ['pudge', 'invoker', 'antimage', 'axe', 'drow_ranger', 'phantom_assassin'];
-  const commonItems = ['blink', 'black_king_bar', 'boots', 'magic_wand', 'bottle', 'tango'];
+  // Test data - Updated to reflect actual available assets
+  const popularHeroes = ['pudge', 'invoker', 'antimage', 'axe', 'drow_ranger', 'phantom_assassin', 'skeleton_king', 'nevermore'];
+  const commonItems = ['blink', 'black_king_bar', 'boots', 'magic_wand', 'bottle', 'tango', 'aegis', 'cheese'];
   const sampleAbilities = [
     'pudge_meat_hook',
     'invoker_cold_snap',
     'antimage_blink',
     'axe_berserkers_call',
     'drow_ranger_frost_arrows',
-    'phantom_assassin_stifling_dagger'
+    'phantom_assassin_stifling_dagger',
+    'ability_default'
   ];
 
   const handleImageLoad = (key) => {
@@ -179,9 +180,6 @@ const AssetTest = () => {
           Hero Icons (Static)
         </Title>
         <Row gutter={[16, 16]}>
-          <Col xs={12} sm={8} md={6} lg={4}>
-            <AssetTestItem type="hero" name="default" />
-          </Col>
           {popularHeroes.map(hero => (
             <Col key={hero} xs={12} sm={8} md={6} lg={4}>
               <AssetTestItem type="hero" name={hero} />
@@ -244,9 +242,6 @@ const AssetTest = () => {
           Ability Icons
         </Title>
         <Row gutter={[16, 16]}>
-          <Col xs={12} sm={8} md={6} lg={4}>
-            <AssetTestItem type="ability" name="ability_default" />
-          </Col>
           {sampleAbilities.map(ability => (
             <Col key={ability} xs={12} sm={8} md={6} lg={4}>
               <AssetTestItem type="ability" name={ability} />
@@ -264,16 +259,16 @@ const AssetTest = () => {
         </Title>
         <Row gutter={[16, 16]}>
           <Col xs={12} sm={8} md={6} lg={4}>
-            <AssetTestItem type="hero" name="natures_prophet" />
+            <AssetTestItem type="hero" name="furion" />
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>
-            <AssetTestItem type="hero" name="skeleton_king" />
+            <AssetTestItem type="hero" name="kez" />
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>
-            <AssetTestItem type="item" name="aegis" format="png" />
+            <AssetTestItem type="item" name="item_default" format="webp" />
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>
-            <AssetTestItem type="item" name="cheese" format="png" />
+            <AssetTestItem type="item" name="recipe" format="png" />
           </Col>
           <Col xs={12} sm={8} md={6} lg={4}>
             <AssetTestItem type="ability" name="invoker_quas" />
@@ -290,9 +285,10 @@ const AssetTest = () => {
         <pre style={{ color: '#888', fontSize: '12px' }}>
           {JSON.stringify({
             normalizedHeroNames: {
-              'natures_prophet': normalizeHeroName('natures_prophet'),
-              'skeleton_king': normalizeHeroName('skeleton_king'),
-              'antimage': normalizeHeroName('antimage')
+              'Nature\'s Prophet': normalizeHeroName('Nature\'s Prophet'),
+              'Anti-Mage': normalizeHeroName('Anti-Mage'),
+              'Wraith King': normalizeHeroName('Wraith King'),
+              'Shadow Fiend': normalizeHeroName('Shadow Fiend')
             },
             assetPaths: {
               heroIcon: '/src/assets/heroes/icons/',

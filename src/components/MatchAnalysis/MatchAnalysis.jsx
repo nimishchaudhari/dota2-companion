@@ -17,6 +17,7 @@ import {
 import { Line, Bar, Pie, Radar, Area, Column } from '@ant-design/plots';
 import { gamingColors } from '../../theme/antdTheme.js';
 import { AuthContext } from '../../contexts/AuthContext.js';
+import authService from '../../services/auth.service.js';
 import { 
   getHeroIcon, 
   getItemIcon, 
@@ -37,28 +38,42 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
     const fetchMatchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`https://api.opendota.com/api/matches/${matchId}`);
-        if (!response.ok) throw new Error('Failed to fetch match data');
-        const data = await response.json();
+        console.log(`[MATCH ANALYSIS] Fetching match data for match ID: ${matchId}`);
         
-        // Fetch additional data for enhanced analytics
-        const [benchmarksRes, heroStatsRes] = await Promise.allSettled([
-          fetch(`https://api.opendota.com/api/benchmarks?hero_id=${data.players.find(p => p.account_id === parseInt(user?.accountId))?.hero_id}`),
-          fetch('https://api.opendota.com/api/heroStats')
+        // Use auth service with API key for match data
+        const data = await authService.fetchMatch(matchId);
+        console.log(`[MATCH ANALYSIS] Match data received:`, data);
+        
+        // Find the current user's player in the match
+        const userPlayer = data.players.find(p => p.account_id === parseInt(user?.accountId));
+        const userHeroId = userPlayer?.hero_id;
+        
+        // Fetch additional data for enhanced analytics using auth service
+        const [benchmarks, heroStats] = await Promise.allSettled([
+          userHeroId ? authService.fetchBenchmarks(userHeroId) : null,
+          authService.fetchGeneralHeroStats()
         ]);
         
-        const benchmarks = benchmarksRes.status === 'fulfilled' ? await benchmarksRes.value.json() : null;
-        const heroStats = heroStatsRes.status === 'fulfilled' ? await heroStatsRes.value.json() : [];
+        const benchmarksData = benchmarks.status === 'fulfilled' ? benchmarks.value : null;
+        const heroStatsData = heroStats.status === 'fulfilled' ? heroStats.value : [];
         
-        setMatchData({ ...data, benchmarks, heroStats });
+        console.log(`[MATCH ANALYSIS] Additional data loaded - benchmarks: ${!!benchmarksData}, heroStats: ${heroStatsData?.length || 0} items`);
+        
+        setMatchData({ ...data, benchmarks: benchmarksData, heroStats: heroStatsData });
       } catch (error) {
-        console.error('Error fetching match:', error);
+        console.error('[MATCH ANALYSIS] Error fetching match:', error);
+        setMatchData(null);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchMatchData();
+    if (matchId) {
+      fetchMatchData();
+    } else {
+      console.error('[MATCH ANALYSIS] No match ID provided');
+      setLoading(false);
+    }
   }, [matchId, user]);
 
 

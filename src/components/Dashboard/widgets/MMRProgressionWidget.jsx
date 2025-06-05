@@ -4,6 +4,7 @@ import { Space, Typography, Empty, Spin, Select, Card } from 'antd';
 import { RiseOutlined, FallOutlined, TrophyOutlined } from '@ant-design/icons';
 import { useData } from '../../../contexts/DataContext.jsx';
 import { gamingColors } from '../../../theme/antdTheme.js';
+import { getRankIcon, getItemIcon } from '../../../utils/assetHelpers.js';
 
 const { Title, Text } = Typography;
 
@@ -159,9 +160,17 @@ export const MMRProgressionWidget = ({ timeRange }) => {
       {/* Header */}
       <div className="flex justify-between items-center mb-3">
         <div>
-          <Title level={5} className="text-white m-0" style={{ fontSize: '14px' }}>
-            MMR PROGRESSION
-          </Title>
+          <div className="flex items-center space-x-2 mb-1">
+            <img 
+              src={getItemIcon('aegis')} 
+              alt="MMR Progression" 
+              className="w-4 h-4" 
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <Title level={5} className="text-white m-0" style={{ fontSize: '14px' }}>
+              MMR PROGRESSION
+            </Title>
+          </div>
           <Text type="secondary" style={{ fontSize: '10px' }} className="uppercase tracking-wider">
             Estimated from match history
           </Text>
@@ -171,6 +180,12 @@ export const MMRProgressionWidget = ({ timeRange }) => {
           {calculateMMRChange.current > 0 && (
             <div className="text-right">
               <div className="flex items-center">
+                <img 
+                  src={getRankIcon(user?.rank_tier || Math.floor(calculateMMRChange.current / 100))} 
+                  alt="Current Rank" 
+                  className="w-4 h-4 mr-1" 
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
                 <TrophyOutlined className="mr-1 text-cyan-400" />
                 <span className="font-bold text-white">
                   {calculateMMRChange.current}
@@ -185,6 +200,12 @@ export const MMRProgressionWidget = ({ timeRange }) => {
           {calculateMMRChange.change !== 0 && (
             <div className="text-right">
               <div className={`flex items-center ${calculateMMRChange.trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
+                <img 
+                  src={getItemIcon(calculateMMRChange.trend === 'up' ? 'abyssal_blade' : 'smoke_of_deceit')} 
+                  alt={calculateMMRChange.trend === 'up' ? 'MMR Gain' : 'MMR Loss'} 
+                  className="w-3 h-3 mr-1" 
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
                 {calculateMMRChange.trend === 'up' ? <RiseOutlined /> : <FallOutlined />}
                 <span className="ml-1 font-bold text-sm">
                   {calculateMMRChange.change > 0 ? '+' : ''}{calculateMMRChange.change}

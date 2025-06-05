@@ -240,27 +240,68 @@ export const HERO_NAME_MAPPINGS = {
 };
 
 /**
+ * Get rank/tier icon based on rank tier number
+ * @param {number} rankTier - Rank tier (1-80 scale from OpenDota)
+ * @returns {string} Asset path for tier icon
+ */
+export const getRankIcon = (rankTier) => {
+  debugLog(`Getting rank icon for tier: ${rankTier}`);
+  
+  if (!rankTier || rankTier < 1) {
+    debugLog('No rank tier provided, using default tier1');
+    return getItemIcon('tier1_token');
+  }
+  
+  // Convert OpenDota rank tier (1-80) to our tier system (1-5)
+  // Herald/Guardian: 1-20 -> tier1
+  // Crusader/Archon: 21-40 -> tier2  
+  // Legend/Ancient: 41-60 -> tier3
+  // Divine: 61-75 -> tier4
+  // Immortal: 76-80 -> tier5
+  let tierLevel;
+  if (rankTier <= 20) tierLevel = 1;
+  else if (rankTier <= 40) tierLevel = 2;
+  else if (rankTier <= 60) tierLevel = 3;
+  else if (rankTier <= 75) tierLevel = 4;
+  else tierLevel = 5;
+  
+  const tierName = `tier${tierLevel}_token`;
+  debugLog(`Mapped rank tier ${rankTier} to ${tierName}`);
+  return getItemIcon(tierName);
+};
+
+/**
  * Normalize hero name for asset lookup
  * @param {string} heroName - Display name from API
  * @returns {string} Normalized name for asset lookup
  */
 export const normalizeHeroName = (heroName) => {
-  debugLog(`Normalizing hero name: "${heroName}"`);
-  
-  // Check if there's a direct mapping
-  if (HERO_NAME_MAPPINGS[heroName]) {
-    debugLog(`Found direct mapping: "${heroName}" -> "${HERO_NAME_MAPPINGS[heroName]}"`);
-    return HERO_NAME_MAPPINGS[heroName];
-  }
-  
-  // Convert to lowercase and replace spaces/special chars
-  const normalized = heroName
-    .toLowerCase()
-    .replace(/['\s-]/g, '_')
-    .replace(/[^a-z0-9_]/g, '')
-    .replace(/__+/g, '_') // Remove multiple underscores
-    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+  try {
+    debugLog(`Normalizing hero name: "${heroName}"`);
     
-  debugLog(`Normalized hero name: "${heroName}" -> "${normalized}"`);
-  return normalized;
+    if (!heroName) {
+      console.warn('[ASSET WARNING] No hero name provided for normalization');
+      return 'default';
+    }
+    
+    // Check if there's a direct mapping
+    if (HERO_NAME_MAPPINGS[heroName]) {
+      debugLog(`Found direct mapping: "${heroName}" -> "${HERO_NAME_MAPPINGS[heroName]}"`);
+      return HERO_NAME_MAPPINGS[heroName];
+    }
+    
+    // Convert to lowercase and replace spaces/special chars
+    const normalized = heroName
+      .toLowerCase()
+      .replace(/['\s-]/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .replace(/__+/g, '_') // Remove multiple underscores
+      .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+      
+    debugLog(`Normalized hero name: "${heroName}" -> "${normalized}"`);
+    return normalized || 'default';
+  } catch (error) {
+    console.warn(`[ASSET WARNING] Error normalizing hero name "${heroName}":`, error);
+    return 'default';
+  }
 };

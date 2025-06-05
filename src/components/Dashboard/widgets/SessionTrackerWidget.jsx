@@ -3,6 +3,7 @@ import { Space, Statistic, Progress, Tag, Alert, Typography, Row, Col, Divider }
 import { FireOutlined, TrophyOutlined, ClockCircleOutlined, AimOutlined } from '@ant-design/icons';
 // import { motion } from 'framer-motion';
 import { useData } from '../../../contexts/DataContext.jsx';
+import { getItemIcon, getRuneIcon } from '../../../utils/assetHelpers.js';
 import { calculateTodaySession } from '../../../utils/dataTransforms.js';
 import { MMRCounter, SessionStatus, TiltMeter } from '../../Gaming/index.jsx';
 import { gamingColors } from '../../../theme/antdTheme.js';
@@ -178,7 +179,15 @@ export const SessionTrackerWidget = () => {
       {/* Session Progress */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <Text strong className="text-white">Session Progress</Text>
+          <div className="flex items-center space-x-2">
+            <img 
+              src={getItemIcon('aegis')} 
+              alt="Session Progress" 
+              className="w-4 h-4" 
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <Text strong className="text-white">Session Progress</Text>
+          </div>
           <Space>
             <Tag color="success">{todaySession.wins}W</Tag>
             <Tag color="error">{todaySession.losses}L</Tag>
@@ -199,6 +208,14 @@ export const SessionTrackerWidget = () => {
       {/* Additional Stats */}
       <Row gutter={[16, 8]} className="text-center">
         <Col span={12}>
+          <div className="flex items-center justify-center space-x-1 mb-1">
+            <img 
+              src={getItemIcon('abyssal_blade')} 
+              alt="KDA" 
+              className="w-3 h-3" 
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          </div>
           <Statistic
             title="Avg KDA"
             value={todaySession.averageKDA}
@@ -210,6 +227,14 @@ export const SessionTrackerWidget = () => {
           />
         </Col>
         <Col span={12}>
+          <div className="flex items-center justify-center space-x-1 mb-1">
+            <img 
+              src={getRuneIcon('haste')} 
+              alt="Duration" 
+              className="w-3 h-3" 
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          </div>
           <Statistic
             title="Avg Duration"
             value={todaySession.averageDuration}
@@ -227,6 +252,12 @@ export const SessionTrackerWidget = () => {
       {todaySession.currentStreak !== 0 && (
         <div className="text-center">
           <Space>
+            <img 
+              src={getRuneIcon(todaySession.currentStreak > 0 ? 'double_damage' : 'regeneration')} 
+              alt="Streak" 
+              className="w-4 h-4" 
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
             <FireOutlined 
               style={{ 
                 color: todaySession.currentStreak > 0 ? 

@@ -26,6 +26,25 @@ npm run test:coverage # Generate coverage report
 npm run test:ui      # Vitest UI dashboard
 ```
 
+## Environment Setup
+
+Create `.env.local` in the project root with your API keys:
+
+```bash
+# OpenDota API Configuration - HIGHLY RECOMMENDED
+# Get your API key from: https://www.opendota.com/api-keys
+VITE_OPENDOTA_API_KEY="your_opendota_api_key_here"
+
+# Without API key: 60 requests/minute (free tier)
+# With API key: 60,000 requests/hour (registered tier)
+
+# Steam API Configuration (optional)
+VITE_STEAM_API_KEY="your_steam_api_key_here"
+
+# Authentication Mode
+VITE_AUTH_MODE=development
+```
+
 ## Architecture Overview
 
 ### Core Application Structure
@@ -38,6 +57,7 @@ npm run test:ui      # Vitest UI dashboard
 
 **Data Management:**
 - `DataContext` provides centralized data fetching from OpenDota API
+- OpenDota API key support for enhanced rate limits (60,000 requests/hour vs 60/minute)
 - Heroes data exposed as both array and map formats for compatibility
 - Real-time caching with 5-minute TTL for API responses
 - Automatic retry logic for failed API calls

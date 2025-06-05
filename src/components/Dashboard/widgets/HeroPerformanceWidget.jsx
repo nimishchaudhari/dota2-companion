@@ -4,6 +4,7 @@ import { SearchOutlined, FireOutlined } from '@ant-design/icons';
 import { useData } from '../../../contexts/DataContext.jsx';
 import { transformHeroStats } from '../../../utils/dataTransforms.js';
 import { gamingColors } from '../../../theme/antdTheme.js';
+import { getHeroIcon, normalizeHeroName } from '../../../utils/assetHelpers.js';
 
 const { Title, Text } = Typography;
 
@@ -63,8 +64,23 @@ export const HeroPerformanceWidget = () => {
       width: '40%',
       render: (name, record) => (
         <Space>
-          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            {name.substring(0, 2).toUpperCase()}
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-gray-800">
+            <img
+              src={getHeroIcon(normalizeHeroName(name))}
+              alt={name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to gradient with initials if hero icon fails to load
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+            <div 
+              className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg hidden items-center justify-center text-white font-bold text-sm"
+              style={{ display: 'none' }}
+            >
+              {name.substring(0, 2).toUpperCase()}
+            </div>
           </div>
           <div>
             <Text strong className="text-white block">{name}</Text>

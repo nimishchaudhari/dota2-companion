@@ -122,10 +122,8 @@ export const DataProvider = ({ children }) => {
       const cached = authService.getCacheItem('heroes_mapping');
       if (cached) return cached;
 
-      const response = await fetch('https://api.opendota.com/api/heroes');
-      if (!response.ok) throw new Error('Failed to fetch heroes');
-      
-      const heroesArray = await response.json();
+      // Use auth service method which includes API key
+      const heroesArray = await authService.fetchHeroes();
       const heroMap = heroesArray.reduce((acc, hero) => {
         acc[hero.id] = hero;
         return acc;

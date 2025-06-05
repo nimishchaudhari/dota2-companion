@@ -4,8 +4,18 @@ class AuthService {
   constructor() {
     this.baseUrl = import.meta.env.VITE_OPENDOTA_API_URL || 'https://api.opendota.com/api';
     this.steamApiUrl = import.meta.env.VITE_STEAM_API_URL || 'https://api.steampowered.com';
+    this.openDotaApiKey = import.meta.env.VITE_OPENDOTA_API_KEY;
     this.cache = new Map();
     this.cacheTTL = parseInt(import.meta.env.VITE_CACHE_TTL) || 300000; // 5 minutes default
+    
+    // Log API key status for debugging
+    if (this.openDotaApiKey) {
+      console.log(`[AUTH SERVICE] OpenDota API key configured (${this.openDotaApiKey.substring(0, 8)}...)`);
+      console.log('[AUTH SERVICE] Enhanced rate limits enabled (60,000 requests/hour)');
+    } else {
+      console.log('[AUTH SERVICE] No OpenDota API key configured - using free tier limits (60 requests/minute)');
+      console.log('[AUTH SERVICE] Add VITE_OPENDOTA_API_KEY to .env.local to enable enhanced limits');
+    }
   }
 
   // Utility: Convert Steam ID to Account ID
@@ -20,6 +30,18 @@ class AuthService {
     const accountIdBig = BigInt(accountId);
     const steamId64 = accountIdBig + BigInt('76561197960265728');
     return steamId64.toString();
+  }
+
+  // Helper method to construct API URLs with optional API key
+  buildApiUrl(endpoint) {
+    const url = new URL(`${this.baseUrl}${endpoint}`);
+    
+    // Add API key if available
+    if (this.openDotaApiKey) {
+      url.searchParams.append('api_key', this.openDotaApiKey);
+    }
+    
+    return url.toString();
   }
 
   // Cache management
@@ -137,7 +159,8 @@ class AuthService {
 
   // Fetch player profile from OpenDota
   async fetchOpenDotaProfile(accountId) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}`);
+    const url = this.buildApiUrl(`/players/${accountId}`);
+    const response = await fetch(url);
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error('Player not found. Please check the Account ID.');
@@ -149,14 +172,16 @@ class AuthService {
 
   // Fetch win/loss data
   async fetchWinLoss(accountId) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}/wl`);
+    const url = this.buildApiUrl(`/players/${accountId}/wl`);
+    const response = await fetch(url);
     if (!response.ok) return { win: 0, lose: 0 };
     return response.json();
   }
 
   // Fetch recent matches
   async fetchRecentMatches(accountId, limit = 20) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}/recentMatches`);
+    const url = this.buildApiUrl(`/players/${accountId}/recentMatches`);
+    const response = await fetch(url);
     if (!response.ok) return [];
     const matches = await response.json();
     return matches.slice(0, limit);
@@ -164,7 +189,8 @@ class AuthService {
 
   // Fetch hero statistics
   async fetchHeroStats(accountId) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}/heroes`);
+    const url = this.buildApiUrl(`/players/${accountId}/heroes`);
+    const response = await fetch(url);
     if (!response.ok) return [];
     const heroes = await response.json();
     return heroes.sort((a, b) => b.games - a.games);
@@ -172,36 +198,65 @@ class AuthService {
 
   // Fetch player ratings (MMR history)
   async fetchRatings(accountId) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}/ratings`);
+    const url = this.buildApiUrl(`/players/${accountId}/ratings`);
+    const response = await fetch(url);
     if (!response.ok) return [];
     return response.json();
   }
 
   // Fetch player totals (for GPM, XPM, etc.)
   async fetchPlayerTotals(accountId) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}/totals`);
+    const url = this.buildApiUrl(`/players/${accountId}/totals`);
+    const response = await fetch(url);
     if (!response.ok) return [];
     return response.json();
   }
 
   // Fetch match details
   async fetchMatch(matchId) {
-    const response = await fetch(`${this.baseUrl}/matches/${matchId}`);
+    const url = this.buildApiUrl(`/matches/${matchId}`);
+    const response = await fetch(url);
     if (!response.ok) throw new Error(`Failed to fetch match ${matchId}`);
     return response.json();
   }
 
   // Fetch player's peers (frequent teammates)
   async fetchPeers(accountId) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}/peers`);
+    const url = this.buildApiUrl(`/players/${accountId}/peers`);
+    const response = await fetch(url);
     if (!response.ok) return [];
     return response.json();
   }
 
   // Fetch player's wordcloud
   async fetchWordcloud(accountId) {
-    const response = await fetch(`${this.baseUrl}/players/${accountId}/wordcloud`);
+    const url = this.buildApiUrl(`/players/${accountId}/wordcloud`);
+    const response = await fetch(url);
     if (!response.ok) return {};
+    return response.json();
+  }
+
+  // Fetch heroes list (used by DataContext)
+  async fetchHeroes() {
+    const url = this.buildApiUrl('/heroes');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch heroes');
+    return response.json();
+  }
+
+  // Fetch benchmarks for hero performance comparison
+  async fetchBenchmarks(heroId) {
+    const url = this.buildApiUrl(`/benchmarks?hero_id=${heroId}`);
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    return response.json();
+  }
+
+  // Fetch general hero stats for meta analysis
+  async fetchGeneralHeroStats() {
+    const url = this.buildApiUrl('/heroStats');
+    const response = await fetch(url);
+    if (!response.ok) return [];
     return response.json();
   }
 
