@@ -1,5 +1,4 @@
 // Enhanced OpenDota API service layer for match analysis
-import authService from './auth.service.js';
 
 class OpenDotaAPIService {
   constructor() {
@@ -110,7 +109,7 @@ class OpenDotaAPIService {
   async fetchMatchLogs(matchId) {
     try {
       return await this.fetchAPI(`/matches/${matchId}/logs`);
-    } catch (error) {
+    } catch (_error) {
       console.warn('[API] Match logs not available (match not parsed)');
       return null;
     }

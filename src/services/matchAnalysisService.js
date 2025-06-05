@@ -56,7 +56,7 @@ class MatchAnalysisService {
 
   // Comprehensive analysis pipeline
   async performComprehensiveAnalysis(data, playerData) {
-    const { match, logs, heroStats, distributions, playerHeroes, playerRatings } = data;
+    const { match, logs, heroStats } = data;
     
     // Role detection
     const role = detectPlayerRole(playerData, match);
@@ -145,7 +145,7 @@ class MatchAnalysisService {
   }
 
   // Performance analysis
-  async analyzePerformance(playerData, role, benchmarks, heroStats) {
+  async analyzePerformance(playerData, role, benchmarks, _heroStats) {
     const metrics = this.getRoleSpecificMetrics(role);
     const scores = {};
     
@@ -345,7 +345,7 @@ class MatchAnalysisService {
     return 'D';
   }
 
-  calculateOverallGrade(playerData, role) {
+  calculateOverallGrade(playerData, _role) {
     // Simple grade calculation based on KDA and role performance
     const kda = ((playerData.kills || 0) + (playerData.assists || 0)) / Math.max((playerData.deaths || 1), 1);
     

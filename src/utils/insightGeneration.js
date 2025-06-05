@@ -8,7 +8,7 @@
  * @param {Object} benchmarks - Performance benchmarks
  * @returns {Object} Comprehensive insights and coaching recommendations
  */
-export function generateInsights(playerData, matchData, role, benchmarks) {
+export function generateInsights(playerData, matchData, role, _benchmarks) {
   const insights = {
     overallAssessment: generateOverallAssessment(playerData, matchData, role),
     criticalMistakes: identifyMistakes(playerData, matchData, role),
@@ -26,8 +26,8 @@ export function generateInsights(playerData, matchData, role, benchmarks) {
 /**
  * Generate overall performance assessment
  */
-function generateOverallAssessment(playerData, matchData, role) {
-  const won = didPlayerWin(playerData, matchData);
+function generateOverallAssessment(playerData, _matchData, role) {
+  const won = didPlayerWin(playerData, _matchData);
   const kda = calculateKDA(playerData);
   const impactScore = calculateImpactScore(playerData, role);
   
@@ -62,7 +62,7 @@ function generateOverallAssessment(playerData, matchData, role) {
 /**
  * Identify critical mistakes made during the match
  */
-function identifyMistakes(playerData, matchData, role) {
+function identifyMistakes(playerData, _matchData, role) {
   const mistakes = [];
 
   // High death count analysis
@@ -95,7 +95,7 @@ function identifyMistakes(playerData, matchData, role) {
   mistakes.push(...farmMistakes);
 
   // Team fight mistakes
-  const teamfightMistakes = analyzeTeamfightMistakes(playerData, matchData);
+  const teamfightMistakes = analyzeTeamfightMistakes(playerData, _matchData);
   mistakes.push(...teamfightMistakes);
 
   // Vision mistakes (for supports)
@@ -114,7 +114,7 @@ function identifyMistakes(playerData, matchData, role) {
 /**
  * Identify player strengths and positive aspects
  */
-function identifyStrengths(playerData, matchData, role) {
+function identifyStrengths(playerData, _matchData, role) {
   const strengths = [];
 
   // KDA strengths
@@ -161,7 +161,7 @@ function identifyStrengths(playerData, matchData, role) {
 /**
  * Generate specific coaching points
  */
-function generateCoachingPoints(playerData, matchData, role) {
+function generateCoachingPoints(playerData, _matchData, role) {
   const coachingPoints = [];
 
   // Laning phase coaching
@@ -173,7 +173,7 @@ function generateCoachingPoints(playerData, matchData, role) {
   coachingPoints.push(...midGamePoints);
 
   // Late game coaching
-  const lateGamePoints = generateLateGameCoaching(playerData, matchData, role);
+  const lateGamePoints = generateLateGameCoaching(playerData, _matchData, role);
   coachingPoints.push(...lateGamePoints);
 
   // Role-specific coaching
@@ -186,17 +186,17 @@ function generateCoachingPoints(playerData, matchData, role) {
 /**
  * Calculate improvement potential score
  */
-function calculateImprovementScore(playerData, role) {
+function calculateImprovementScore(playerData, _role) {
   let score = 0;
   let maxScore = 0;
 
   // Analyze different areas for improvement potential
   const areas = {
-    farming: analyzeFarmingImprovement(playerData, role),
+    farming: analyzeFarmingImprovement(playerData, _role),
     positioning: analyzePositioningImprovement(playerData),
     teamfighting: analyzeTeamfightingImprovement(playerData),
-    vision: analyzeVisionImprovement(playerData, role),
-    itemization: analyzeItemizationImprovement(playerData, role)
+    vision: analyzeVisionImprovement(playerData, _role),
+    itemization: analyzeItemizationImprovement(playerData, _role)
   };
 
   Object.values(areas).forEach(area => {
@@ -218,7 +218,7 @@ function calculateImprovementScore(playerData, role) {
 /**
  * Generate actionable tips for immediate improvement
  */
-function generateActionableTips(playerData, role) {
+function generateActionableTips(playerData, _role) {
   const tips = [];
 
   // Universal tips
@@ -231,11 +231,11 @@ function generateActionableTips(playerData, role) {
   });
 
   // Role-specific tips
-  const roleTips = getRoleSpecificTips(role);
+  const roleTips = getRoleSpecificTips(_role);
   tips.push(...roleTips);
 
   // Performance-based tips
-  const performanceTips = getPerformanceBasedTips(playerData, role);
+  const performanceTips = getPerformanceBasedTips(playerData, _role);
   tips.push(...performanceTips);
 
   return tips.slice(0, 8); // Limit to most important tips
@@ -244,27 +244,27 @@ function generateActionableTips(playerData, role) {
 /**
  * Generate next steps for improvement
  */
-function generateNextSteps(playerData, role) {
+function generateNextSteps(playerData, _role) {
   const nextSteps = [];
 
   // Short-term goals (1-2 weeks)
   nextSteps.push({
     timeframe: 'Short-term (1-2 weeks)',
-    goals: getShortTermGoals(playerData, role),
+    goals: getShortTermGoals(playerData, _role),
     focus: 'Immediate skill improvements and habit formation'
   });
 
   // Medium-term goals (1 month)
   nextSteps.push({
     timeframe: 'Medium-term (1 month)',
-    goals: getMediumTermGoals(playerData, role),
+    goals: getMediumTermGoals(playerData, _role),
     focus: 'Consistent performance and advanced techniques'
   });
 
   // Long-term goals (2-3 months)
   nextSteps.push({
     timeframe: 'Long-term (2-3 months)',
-    goals: getLongTermGoals(playerData, role),
+    goals: getLongTermGoals(playerData, _role),
     focus: 'Mastery and leadership development'
   });
 
@@ -274,7 +274,7 @@ function generateNextSteps(playerData, role) {
 /**
  * Generate role-specific analysis
  */
-function generateRoleSpecificAnalysis(playerData, role) {
+function generateRoleSpecificAnalysis(playerData, _role) {
   const roleAnalysis = {
     'Carry': analyzeCarryPerformance(playerData),
     'Mid': analyzeMidPerformance(playerData),
@@ -283,14 +283,14 @@ function generateRoleSpecificAnalysis(playerData, role) {
     'Hard Support': analyzeHardSupportPerformance(playerData)
   };
 
-  return roleAnalysis[role] || roleAnalysis['Support'];
+  return roleAnalysis[_role] || roleAnalysis['Support'];
 }
 
 // Helper functions
 
-function didPlayerWin(playerData, matchData) {
+function didPlayerWin(playerData, _matchData) {
   const isRadiant = playerData.player_slot < 128;
-  return matchData.radiant_win === isRadiant;
+  return _matchData.radiant_win === isRadiant;
 }
 
 function calculateKDA(playerData) {
@@ -301,11 +301,11 @@ function calculateKDA(playerData) {
   return deaths > 0 ? (kills + assists) / deaths : kills + assists;
 }
 
-function calculateImpactScore(playerData, role) {
+function calculateImpactScore(playerData, _role) {
   let score = 50; // Base score
   
   // Role-specific impact calculation
-  switch (role) {
+  switch (_role) {
     case 'Carry':
       score += (playerData.hero_damage || 0) / 1000;
       score += (playerData.gold_per_min || 0) / 15;
@@ -332,7 +332,7 @@ function calculateImpactScore(playerData, role) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function calculateOverallGrade(playerData, role, impactScore) {
+function calculateOverallGrade(_playerData, _role, impactScore) {
   if (impactScore >= 85) return 'S';
   if (impactScore >= 75) return 'A';
   if (impactScore >= 65) return 'B';
@@ -349,9 +349,9 @@ function getPerformanceLevel(score) {
   return 'Poor';
 }
 
-function identifyDeathTimeframes(playerData) {
+function identifyDeathTimeframes(_playerData) {
   // Simplified - would need death logs for detailed analysis
-  const deaths = playerData.deaths || 0;
+  const deaths = _playerData.deaths || 0;
   
   if (deaths >= 8) {
     return ['Early game deaths (0-15 min)', 'Mid game deaths (15-30 min)', 'Late game deaths (30+ min)'];
@@ -362,7 +362,7 @@ function identifyDeathTimeframes(playerData) {
   }
 }
 
-function analyzeFarmMistakes(playerData, role) {
+function analyzeFarmMistakes(playerData, _role) {
   const mistakes = [];
   const gpm = playerData.gold_per_min || 0;
   const cs = playerData.last_hits || 0;
@@ -376,26 +376,26 @@ function analyzeFarmMistakes(playerData, role) {
     'Hard Support': { minGPM: 250, minCS: 30 }
   };
 
-  const expectations = farmExpectations[role] || farmExpectations['Support'];
+  const expectations = farmExpectations[_role] || farmExpectations['Support'];
 
   if (gpm < expectations.minGPM) {
     mistakes.push({
       type: 'major',
       category: 'Economy',
       title: 'Low Farm Efficiency',
-      description: `${gpm} GPM is below expected ${expectations.minGPM} for ${role}`,
+      description: `${gpm} GPM is below expected ${expectations.minGPM} for ${_role}`,
       impact: 'Reduced item timings and team contribution',
       improvement: 'Focus on farming patterns, jungle efficiency, and minimizing downtime',
       priority: 2
     });
   }
 
-  if (cs < expectations.minCS && ['Carry', 'Mid'].includes(role)) {
+  if (cs < expectations.minCS && ['Carry', 'Mid'].includes(_role)) {
     mistakes.push({
       type: 'major',
       category: 'Farming',
       title: 'Poor Last-Hit Efficiency',
-      description: `${cs} last hits is below expected ${expectations.minCS} for ${role}`,
+      description: `${cs} last hits is below expected ${expectations.minCS} for ${_role}`,
       impact: 'Significant gold deficit',
       improvement: 'Practice last-hitting mechanics and creep aggro control',
       priority: 2
@@ -405,7 +405,7 @@ function analyzeFarmMistakes(playerData, role) {
   return mistakes;
 }
 
-function analyzeTeamfightMistakes(playerData, matchData) {
+function analyzeTeamfightMistakes(playerData, _matchData) {
   const mistakes = [];
   
   const teamfightParticipation = playerData.teamfight_participation || 0;
@@ -424,9 +424,9 @@ function analyzeTeamfightMistakes(playerData, matchData) {
   return mistakes;
 }
 
-function analyzeVisionMistakes(playerData) {
+function analyzeVisionMistakes(_playerData) {
   const mistakes = [];
-  const wardsPlaced = (playerData.obs_placed || 0) + (playerData.sen_placed || 0);
+  const wardsPlaced = (_playerData.obs_placed || 0) + (_playerData.sen_placed || 0);
   
   if (wardsPlaced < 10) {
     mistakes.push({
@@ -443,10 +443,10 @@ function analyzeVisionMistakes(playerData) {
   return mistakes;
 }
 
-function analyzeRoleSpecificMistakes(playerData, role) {
+function analyzeRoleSpecificMistakes(playerData, _role) {
   const mistakes = [];
   
-  switch (role) {
+  switch (_role) {
     case 'Carry':
       if ((playerData.hero_damage || 0) < 20000) {
         mistakes.push({
@@ -478,7 +478,7 @@ function analyzeRoleSpecificMistakes(playerData, role) {
   return mistakes;
 }
 
-function analyzeFarmStrengths(playerData, role) {
+function analyzeFarmStrengths(playerData, _role) {
   const strengths = [];
   const gpm = playerData.gold_per_min || 0;
   
@@ -490,13 +490,13 @@ function analyzeFarmStrengths(playerData, role) {
     'Hard Support': { excellent: 350, good: 280 }
   };
 
-  const thresholds = farmThresholds[role] || farmThresholds['Support'];
+  const thresholds = farmThresholds[_role] || farmThresholds['Support'];
 
   if (gpm >= thresholds.excellent) {
     strengths.push({
       category: 'Economy',
       title: 'Excellent Farm Efficiency',
-      description: `Outstanding ${gpm} GPM for ${role} role`,
+      description: `Outstanding ${gpm} GPM for ${_role} role`,
       impact: 'Strong item progression and team contribution',
       maintainance: 'Continue current farming patterns and efficiency'
     });
@@ -513,7 +513,7 @@ function analyzeFarmStrengths(playerData, role) {
   return strengths;
 }
 
-function analyzeImpactStrengths(playerData, role) {
+function analyzeImpactStrengths(playerData, _role) {
   const strengths = [];
   
   if ((playerData.hero_damage || 0) >= 25000) {
@@ -539,9 +539,9 @@ function analyzeImpactStrengths(playerData, role) {
   return strengths;
 }
 
-function analyzeVisionStrengths(playerData) {
+function analyzeVisionStrengths(_playerData) {
   const strengths = [];
-  const wardsPlaced = (playerData.obs_placed || 0) + (playerData.sen_placed || 0);
+  const wardsPlaced = (_playerData.obs_placed || 0) + (_playerData.sen_placed || 0);
   
   if (wardsPlaced >= 20) {
     strengths.push({
@@ -564,10 +564,10 @@ function analyzeVisionStrengths(playerData) {
   return strengths;
 }
 
-function analyzeRoleSpecificStrengths(playerData, role) {
+function analyzeRoleSpecificStrengths(playerData, _role) {
   const strengths = [];
   
-  switch (role) {
+  switch (_role) {
     case 'Carry':
       if ((playerData.last_hits || 0) >= 250) {
         strengths.push({
@@ -600,51 +600,51 @@ function analyzeRoleSpecificStrengths(playerData, role) {
 // Additional helper functions for coaching and tips would continue...
 // This is a comprehensive framework that can be extended with more detailed analysis
 
-function generateLaningCoaching(playerData, role) {
+function generateLaningCoaching(_playerData, _role) {
   // Implementation for laning phase coaching
   return [];
 }
 
-function generateMidGameCoaching(playerData, role) {
+function generateMidGameCoaching(_playerData, _role) {
   // Implementation for mid game coaching
   return [];
 }
 
-function generateLateGameCoaching(playerData, matchData, role) {
+function generateLateGameCoaching(_playerData, _matchData, _role) {
   // Implementation for late game coaching
   return [];
 }
 
-function generateRoleSpecificCoaching(playerData, role) {
+function generateRoleSpecificCoaching(_playerData, _role) {
   // Implementation for role-specific coaching
   return [];
 }
 
-function analyzeFarmingImprovement(playerData, role) {
+function analyzeFarmingImprovement(_playerData, _role) {
   return { currentScore: 50, maxScore: 100 };
 }
 
-function analyzePositioningImprovement(playerData) {
+function analyzePositioningImprovement(_playerData) {
   return { currentScore: 60, maxScore: 100 };
 }
 
-function analyzeTeamfightingImprovement(playerData) {
+function analyzeTeamfightingImprovement(_playerData) {
   return { currentScore: 55, maxScore: 100 };
 }
 
-function analyzeVisionImprovement(playerData, role) {
+function analyzeVisionImprovement(_playerData, _role) {
   return { currentScore: 40, maxScore: 100 };
 }
 
-function analyzeItemizationImprovement(playerData, role) {
+function analyzeItemizationImprovement(_playerData, _role) {
   return { currentScore: 70, maxScore: 100 };
 }
 
-function generateImprovementRecommendations(areas) {
+function generateImprovementRecommendations(_areas) {
   return [];
 }
 
-function getRoleSpecificTips(role) {
+function getRoleSpecificTips(_role) {
   const roleTips = {
     'Carry': [
       {
@@ -666,26 +666,26 @@ function getRoleSpecificTips(role) {
     ]
   };
   
-  return roleTips[role] || [];
+  return roleTips[_role] || [];
 }
 
-function getPerformanceBasedTips(playerData, role) {
+function getPerformanceBasedTips(_playerData, _role) {
   return [];
 }
 
-function getShortTermGoals(playerData, role) {
+function getShortTermGoals(_playerData, _role) {
   return ['Improve map awareness', 'Reduce deaths by 20%'];
 }
 
-function getMediumTermGoals(playerData, role) {
+function getMediumTermGoals(_playerData, _role) {
   return ['Increase farm efficiency', 'Better team fight positioning'];
 }
 
-function getLongTermGoals(playerData, role) {
+function getLongTermGoals(_playerData, _role) {
   return ['Master role-specific mechanics', 'Develop game sense'];
 }
 
-function analyzeCarryPerformance(playerData) {
+function analyzeCarryPerformance(_playerData) {
   return {
     farmingEfficiency: 75,
     teamfightPositioning: 60,
@@ -694,7 +694,7 @@ function analyzeCarryPerformance(playerData) {
   };
 }
 
-function analyzeMidPerformance(playerData) {
+function analyzeMidPerformance(_playerData) {
   return {
     laningPhase: 70,
     mapImpact: 60,
@@ -703,7 +703,7 @@ function analyzeMidPerformance(playerData) {
   };
 }
 
-function analyzeOfflanePerformance(playerData) {
+function analyzeOfflanePerformance(_playerData) {
   return {
     survivability: 65,
     initiation: 60,
@@ -712,7 +712,7 @@ function analyzeOfflanePerformance(playerData) {
   };
 }
 
-function analyzeSupportPerformance(playerData) {
+function analyzeSupportPerformance(_playerData) {
   return {
     visionControl: 60,
     teamSupport: 70,
@@ -721,7 +721,7 @@ function analyzeSupportPerformance(playerData) {
   };
 }
 
-function analyzeHardSupportPerformance(playerData) {
+function analyzeHardSupportPerformance(_playerData) {
   return {
     visionControl: 70,
     dewarding: 55,

@@ -3,7 +3,7 @@
 /**
  * Analyze laning phase performance (0-10 minutes)
  */
-export function analyzeLaningPhase(playerData, matchData, logs) {
+export function analyzeLaningPhase(playerData, _matchData, _logs) {
   const laningData = {
     csProgression: playerData.lh_t?.slice(0, 10) || [],
     xpProgression: playerData.xp_t?.slice(0, 10) || [],
@@ -49,7 +49,7 @@ export function analyzeLaningPhase(playerData, matchData, logs) {
 /**
  * Analyze economy and resource management
  */
-export function analyzeEconomy(playerData, matchData, logs) {
+export function analyzeEconomy(playerData, _matchData, _logs) {
   const goldSources = parseGoldReasons(playerData.gold_reasons);
   const itemTimings = analyzeItemProgression(playerData.purchase_log);
   const netWorthProgression = playerData.gold_t || [];
@@ -70,15 +70,15 @@ export function analyzeEconomy(playerData, matchData, logs) {
       farmDistribution: analyzeFarmDistribution(goldSources)
     },
     milestones: calculateEconomyMilestones(netWorthProgression, itemTimings),
-    comparison: compareEconomyToTeam(playerData, matchData)
+    comparison: compareEconomyToTeam(playerData, _matchData)
   };
 }
 
 /**
  * Analyze combat performance and teamfights
  */
-export function analyzeCombat(playerData, matchData, logs) {
-  const teamfights = analyzeTeamfights(matchData.teamfights || [], playerData);
+export function analyzeCombat(playerData, _matchData, _logs) {
+  const teamfights = analyzeTeamfights(_matchData.teamfights || [], playerData);
   const damageDistribution = calculateDamageDistribution(playerData);
   const targetPriority = analyzeKillTargets(playerData.killed);
 
@@ -88,15 +88,15 @@ export function analyzeCombat(playerData, matchData, logs) {
     targetPriority,
     positioning: {
       score: calculatePositioningScore(playerData),
-      deaths: analyzeDeathPositions(playerData, logs),
+      deaths: analyzeDeathPositions(playerData, _logs),
       safetyRating: calculateSafetyRating(playerData)
     },
     efficiency: {
-      killParticipation: calculateKillParticipation(playerData, matchData),
+      killParticipation: calculateKillParticipation(playerData, _matchData),
       damagePerGold: calculateDamagePerGold(playerData),
       survivalRate: calculateSurvivalRate(playerData, teamfights)
     },
-    timeline: buildCombatTimeline(playerData, logs),
+    timeline: buildCombatTimeline(playerData, _logs),
     strengths: identifyCombatStrengths(playerData),
     weaknesses: identifyCombatWeaknesses(playerData)
   };
@@ -105,10 +105,10 @@ export function analyzeCombat(playerData, matchData, logs) {
 /**
  * Analyze vision and map control
  */
-export function analyzeVision(playerData, matchData, logs) {
-  const wardMetrics = calculateWardMetrics(playerData, matchData);
-  const visionScore = calculateVisionScore(playerData, matchData);
-  const mapControl = analyzeMapControl(playerData, matchData);
+export function analyzeVision(playerData, _matchData, _logs) {
+  const wardMetrics = calculateWardMetrics(playerData, _matchData);
+  const visionScore = calculateVisionScore(playerData, _matchData);
+  const mapControl = analyzeMapControl(playerData, _matchData);
 
   return {
     visionScore,
@@ -117,7 +117,7 @@ export function analyzeVision(playerData, matchData, logs) {
     mapControl,
     timeline: buildWardTimeline(playerData),
     efficiency: {
-      wardUptime: calculateWardUptime(playerData, matchData.duration),
+      wardUptime: calculateWardUptime(playerData, _matchData.duration),
       dewardEfficiency: calculateDewardEfficiency(playerData),
       visionCoverage: calculateVisionCoverage(playerData),
       goldInvestment: calculateVisionGoldInvestment(playerData)
@@ -137,7 +137,7 @@ function countDeathsInTimeframe(playerData, startTime, endTime) {
   ).length;
 }
 
-function calculateLaneScore(laningData, playerData) {
+function calculateLaneScore(laningData, _playerData) {
   let score = 50; // Base score
   
   const csAt10 = laningData.csProgression[9] || 0;
@@ -197,7 +197,7 @@ function calculateGoldEfficiency(goldProgression) {
   return timeMinutes > 0 ? Math.round(finalGold / timeMinutes) : 0;
 }
 
-function getLaningBenchmarks(playerData) {
+function getLaningBenchmarks(_playerData) {
   // Role-based benchmarks for laning phase
   return {
     cs: { excellent: 80, good: 60, average: 40, poor: 20 },
@@ -275,9 +275,9 @@ function calculateGoldSpent(purchaseLog) {
   return purchaseLog.reduce((total, purchase) => total + (purchase.cost || 0), 0);
 }
 
-function calculateOverallGoldEfficiency(playerData) {
-  const netWorth = playerData.net_worth || 0;
-  const heroDamage = playerData.hero_damage || 0;
+function calculateOverallGoldEfficiency(_playerData) {
+  const netWorth = _playerData.net_worth || 0;
+  const heroDamage = _playerData.hero_damage || 0;
   
   return netWorth > 0 ? Math.round(heroDamage / netWorth * 100) / 100 : 0;
 }
@@ -325,9 +325,9 @@ function calculateEconomyMilestones(netWorthProgression, itemTimings) {
   return milestones.sort((a, b) => a.time - b.time);
 }
 
-function compareEconomyToTeam(playerData, matchData) {
+function compareEconomyToTeam(playerData, _matchData) {
   const isRadiant = playerData.player_slot < 128;
-  const teammates = matchData.players.filter(p => 
+  const teammates = _matchData.players.filter(p => 
     isRadiant ? p.player_slot < 128 : p.player_slot >= 128
   );
   
@@ -382,11 +382,11 @@ function calculateDamageDistribution(playerData) {
   };
 }
 
-function analyzeKillTargets(killed) {
-  if (!killed) return {};
+function analyzeKillTargets(_killed) {
+  if (!_killed) return {};
   
   const targetCounts = {};
-  Object.values(killed).forEach(count => {
+  Object.values(_killed).forEach(_count => {
     // This would need more detailed data to properly analyze
     // For now, return a simplified version
   });
@@ -408,7 +408,7 @@ function calculatePositioningScore(playerData) {
   return Math.max(0, Math.min(100, score));
 }
 
-function analyzeDeathPositions(playerData, logs) {
+function analyzeDeathPositions(_playerData, _logs) {
   // This would require detailed log analysis
   // Return simplified data for now
   return {
@@ -430,12 +430,12 @@ function calculateSafetyRating(playerData) {
   return 'Poor';
 }
 
-function calculateKillParticipation(playerData, matchData) {
+function calculateKillParticipation(playerData, _matchData) {
   const playerKills = (playerData.kills || 0) + (playerData.assists || 0);
   
   // Calculate team kills (would need team data)
   const isRadiant = playerData.player_slot < 128;
-  const teamPlayers = matchData.players.filter(p => 
+  const teamPlayers = _matchData.players.filter(p => 
     isRadiant ? p.player_slot < 128 : p.player_slot >= 128
   );
   
@@ -459,7 +459,7 @@ function calculateSurvivalRate(playerData, teamfights) {
     Math.round(((totalTeamfights - deathsInTeamfights) / totalTeamfights) * 100) : 100;
 }
 
-function buildCombatTimeline(playerData, logs) {
+function buildCombatTimeline(_playerData, _logs) {
   // Simplified timeline - would need detailed logs for full implementation
   return [];
 }
@@ -502,7 +502,7 @@ function identifyCombatWeaknesses(playerData) {
 
 // Helper functions for vision analysis
 
-function calculateWardMetrics(playerData, matchData) {
+function calculateWardMetrics(playerData, _matchData) {
   return {
     obsPlaced: playerData.obs_placed || 0,
     senPlaced: playerData.sen_placed || 0,
@@ -513,9 +513,9 @@ function calculateWardMetrics(playerData, matchData) {
   };
 }
 
-function calculateVisionScore(playerData, matchData) {
-  const wardMetrics = calculateWardMetrics(playerData, matchData);
-  const duration = matchData.duration / 60; // Convert to minutes
+function calculateVisionScore(playerData, _matchData) {
+  const wardMetrics = calculateWardMetrics(playerData, _matchData);
+  const duration = _matchData.duration / 60; // Convert to minutes
   
   let score = 0;
   
@@ -543,7 +543,7 @@ function getVisionGrade(visionScore) {
   return 'D';
 }
 
-function analyzeMapControl(playerData, matchData) {
+function analyzeMapControl(playerData, _matchData) {
   // Simplified map control analysis
   const towerDamage = playerData.tower_damage || 0;
   const neutralKills = playerData.neutral_kills || 0;
@@ -626,14 +626,14 @@ function calculateVisionCoverage(playerData) {
 }
 
 function calculateVisionGoldInvestment(playerData) {
-  const obsWards = playerData.obs_placed || 0;
+  const _obsWards = playerData.obs_placed || 0;
   const senWards = playerData.sen_placed || 0;
   
   // Observer wards are free, sentry wards cost gold
   return senWards * 50; // Approximate cost
 }
 
-function compareVisionToRole(playerData, wardMetrics) {
+function compareVisionToRole(_playerData, _wardMetrics) {
   // Role-based vision expectations
   const roleExpectations = {
     'Hard Support': { minObs: 15, minSen: 10, minDewarding: 5 },
@@ -647,7 +647,7 @@ function compareVisionToRole(playerData, wardMetrics) {
   return roleExpectations['Support']; // Default
 }
 
-function generateVisionRecommendations(playerData, wardMetrics) {
+function generateVisionRecommendations(_playerData, wardMetrics) {
   const recommendations = [];
   
   if (wardMetrics.obsPlaced < 5) {

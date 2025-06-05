@@ -36,7 +36,7 @@ export function detectPlayerRole(playerData, matchData) {
     'Carry': calculateCarryScore(playerData, farmPriority, teamData),
     'Mid': calculateMidScore(playerData, farmPriority, laneIndicators),
     'Offlane': calculateOfflaneScore(playerData, farmPriority, teamData),
-    'Support': calculateSupportScore(playerData, supportScore, farmPriority),
+    'Support': calculateSupportRoleScore(playerData, supportScore, farmPriority),
     'Hard Support': calculateHardSupportScore(playerData, supportScore, farmPriority)
   };
 
@@ -128,7 +128,7 @@ function analyzeLaneIndicators(playerData) {
 /**
  * Calculate carry role score
  */
-function calculateCarryScore(playerData, farmPriority, teamData) {
+function calculateCarryScore(playerData, farmPriority, _teamData) {
   let score = 0;
   
   // High farm priority
@@ -188,7 +188,7 @@ function calculateMidScore(playerData, farmPriority, laneIndicators) {
 /**
  * Calculate offlane role score
  */
-function calculateOfflaneScore(playerData, farmPriority, teamData) {
+function calculateOfflaneScore(playerData, farmPriority, _teamData) {
   let score = 0;
   
   // Moderate farm priority
@@ -218,7 +218,7 @@ function calculateOfflaneScore(playerData, farmPriority, teamData) {
 /**
  * Calculate support role score (position 4)
  */
-function calculateSupportScore(playerData, supportScore, farmPriority) {
+function calculateSupportRoleScore(playerData, supportScore, farmPriority) {
   let score = 0;
   
   // Lower farm priority
@@ -417,11 +417,12 @@ export function validateRoleDetection(playerData, matchData, detectedRole) {
       break;
       
     case 'Support':
-    case 'Hard Support':
+    case 'Hard Support': {
       const wardCount = (playerData.obs_placed || 0) + (playerData.sen_placed || 0);
       if (wardCount >= 10) confidenceScore += 25;
       if (farmPriority <= 0.8) confidenceScore += 15;
       break;
+    }
   }
   
   return {

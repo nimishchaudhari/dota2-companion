@@ -43,15 +43,15 @@ export const getHeroIcon = (heroName, animated = false) => {
     const assetPath = `/assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.${animated ? 'webm' : 'png'}`;
     debugLog(`Generated hero asset URL: ${assetPath}`);
     return assetPath;
-  } catch (error) {
-    debugLog(`Error generating hero asset URL for "${heroName}":`, error);
+  } catch (_error) {
+    debugLog(`Error generating hero asset URL for "${heroName}":`, _error);
     // Fallback to default hero icon
     try {
       const fallbackPath = `/assets/heroes/icons/default.png`;
       debugLog(`Using fallback hero asset URL: ${fallbackPath}`);
       return fallbackPath;
-    } catch (fallbackError) {
-      console.warn(`[ASSET WARNING] Failed to generate hero asset URL for "${heroName}":`, error);
+    } catch (_fallbackError) {
+      console.warn(`[ASSET WARNING] Failed to generate hero asset URL for "${heroName}":`, _error);
       return '';
     }
   }
@@ -70,15 +70,15 @@ export const getAbilityIcon = (abilityName) => {
     const assetPath = `/assets/abilities/${abilityName}.webp`;
     debugLog(`Generated ability asset URL: ${assetPath}`);
     return assetPath;
-  } catch (error) {
-    debugLog(`Error generating ability asset URL for "${abilityName}":`, error);
+  } catch (_error) {
+    debugLog(`Error generating ability asset URL for "${abilityName}":`, _error);
     // Fallback to default ability icon
     try {
       const fallbackPath = `/assets/abilities/ability_default.webp`;
       debugLog(`Using fallback ability asset URL: ${fallbackPath}`);
       return fallbackPath;
-    } catch (fallbackError) {
-      console.warn(`[ASSET WARNING] Failed to generate ability asset URL for "${abilityName}":`, error);
+    } catch (_fallbackError) {
+      console.warn(`[ASSET WARNING] Failed to generate ability asset URL for "${abilityName}":`, _error);
       return '';
     }
   }
@@ -98,15 +98,15 @@ export const getItemIcon = (itemName, format = 'webp') => {
     const assetPath = `/assets/items/${itemName}.${format}`;
     debugLog(`Generated item asset URL: ${assetPath}`);
     return assetPath;
-  } catch (error) {
-    debugLog(`Error generating item asset URL for "${itemName}":`, error);
+  } catch (_error) {
+    debugLog(`Error generating item asset URL for "${itemName}":`, _error);
     // Fallback to default item icon
     try {
       const fallbackPath = `/assets/items/item_default.${format}`;
       debugLog(`Using fallback item asset URL: ${fallbackPath}`);
       return fallbackPath;
-    } catch (fallbackError) {
-      console.warn(`[ASSET WARNING] Failed to generate item asset URL for "${itemName}":`, error);
+    } catch (_fallbackError) {
+      console.warn(`[ASSET WARNING] Failed to generate item asset URL for "${itemName}":`, _error);
       return '';
     }
   }
@@ -125,9 +125,9 @@ export const getRuneIcon = (runeName) => {
     const assetPath = `/assets/runes/${runeName}.webp`;
     debugLog(`Generated rune asset URL: ${assetPath}`);
     return assetPath;
-  } catch (error) {
-    debugLog(`Error generating rune asset URL for "${runeName}":`, error);
-    console.warn(`[ASSET WARNING] Failed to generate rune asset URL for "${runeName}":`, error);
+  } catch (_error) {
+    debugLog(`Error generating rune asset URL for "${runeName}":`, _error);
+    console.warn(`[ASSET WARNING] Failed to generate rune asset URL for "${runeName}":`, _error);
     return '';
   }
 };
@@ -145,9 +145,9 @@ export const getFacetIcon = (facetName) => {
     const assetPath = `/assets/facets/${facetName}.webp`;
     debugLog(`Generated facet asset URL: ${assetPath}`);
     return assetPath;
-  } catch (error) {
-    debugLog(`Error generating facet asset URL for "${facetName}":`, error);
-    console.warn(`[ASSET WARNING] Failed to generate facet asset URL for "${facetName}":`, error);
+  } catch (_error) {
+    debugLog(`Error generating facet asset URL for "${facetName}":`, _error);
+    console.warn(`[ASSET WARNING] Failed to generate facet asset URL for "${facetName}":`, _error);
     return '';
   }
 };
@@ -218,8 +218,8 @@ export const assetExists = async (assetPath) => {
     const exists = response.ok;
     debugLog(`Asset exists check result for "${assetPath}": ${exists} (status: ${response.status})`);
     return exists;
-  } catch (error) {
-    debugLog(`Asset exists check failed for "${assetPath}":`, error.message);
+  } catch (_error) {
+    debugLog(`Asset exists check failed for "${assetPath}":`, _error.message);
     return false;
   }
 };
@@ -351,8 +351,8 @@ export const normalizeHeroName = (heroName) => {
       
     debugLog(`Normalized hero name: "${heroName}" -> "${normalized}"`);
     return normalized || 'default';
-  } catch (error) {
-    console.warn(`[ASSET WARNING] Error normalizing hero name "${heroName}":`, error);
+  } catch (_error) {
+    console.warn(`[ASSET WARNING] Error normalizing hero name "${heroName}":`, _error);
     return 'default';
   }
 };

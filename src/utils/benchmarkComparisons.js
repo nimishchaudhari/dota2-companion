@@ -251,7 +251,7 @@ export function calculateOverallPerformanceScore(benchmarkResults) {
 /**
  * Get role-specific benchmark weights
  */
-export function getRoleBenchmarkWeights(role) {
+export function getRoleBenchmarkWeights(_role) {
   const roleWeights = {
     'Carry': {
       'last_hits': 0.25,
@@ -290,7 +290,7 @@ export function getRoleBenchmarkWeights(role) {
     }
   };
 
-  return roleWeights[role] || roleWeights['Support'];
+  return roleWeights[_role] || roleWeights['Support'];
 }
 
 /**
@@ -418,7 +418,7 @@ export function generateBenchmarkRecommendations(benchmarkResults, role) {
 /**
  * Get specific recommendations for metrics
  */
-function getMetricRecommendation(metric, percentile, role) {
+function getMetricRecommendation(metric, _percentile, _role) {
   const recommendations = {
     'last_hits': {
       suggestion: 'Practice last-hitting in demo mode daily. Focus on creep aggro mechanics and timing.',
