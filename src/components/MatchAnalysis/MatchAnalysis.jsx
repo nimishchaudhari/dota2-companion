@@ -502,7 +502,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
                 {draftAnalysis.radiantDraft.map((hero, idx) => (
                   <div key={idx} className="flex items-center justify-between mb-2">
                     <Space>
-                      <Avatar size={32} src={`https://cdn.dota2.com${hero.player.hero_img}`} />
+                      <Avatar size={32} src={getHeroIconById(hero.hero, matchData.heroStats)} />
                       <Text className="text-white">{hero.player.hero_name}</Text>
                     </Space>
                     <Tag color={parseFloat(hero.winRate) > 50 ? 'green' : 'red'}>
@@ -516,7 +516,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
                 {draftAnalysis.direDraft.map((hero, idx) => (
                   <div key={idx} className="flex items-center justify-between mb-2">
                     <Space>
-                      <Avatar size={32} src={`https://cdn.dota2.com${hero.player.hero_img}`} />
+                      <Avatar size={32} src={getHeroIconById(hero.hero, matchData.heroStats)} />
                       <Text className="text-white">{hero.player.hero_name}</Text>
                     </Space>
                     <Tag color={parseFloat(hero.winRate) > 50 ? 'green' : 'red'}>
@@ -1397,7 +1397,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
                 {itemId ? (
                   <Tooltip title={`Item ${itemId}`}>
                     <img 
-                      src={`https://cdn.dota2.com/apps/dota2/images/items/${itemId}_lg.png`}
+                      src={getItemIconSafe(`item_${itemId}`, 'png')}
                       alt={`Item ${itemId}`}
                       className="max-w-full"
                     />
@@ -1420,7 +1420,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
               >
                 {itemId ? (
                   <img 
-                    src={`https://cdn.dota2.com/apps/dota2/images/items/${itemId}_lg.png`}
+                    src={getItemIconSafe(`item_${itemId}`, 'png')}
                     alt={`Item ${itemId}`}
                     className="max-w-full opacity-75"
                   />

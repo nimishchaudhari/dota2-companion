@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { useData } from '../../../contexts/DataContext.jsx';
 import { gamingColors } from '../../../theme/antdTheme.js';
+import { getHeroIconById } from '../../../utils/assetHelpers.js';
 
 const { Title, Text } = Typography;
 
@@ -57,7 +58,7 @@ export const RecentMatchesWidget = ({ onMatchClick }) => {
         ...match,
         isWin,
         heroName: hero?.localized_name || `Hero ${match.hero_id}`,
-        heroIcon: hero ? (hero.icon ? `https://cdn.dota2.com${hero.icon}` : `https://cdn.dota2.com${hero.img || ''}`).replace('//', '/') : null,
+        heroIcon: hero ? getHeroIconById(match.hero_id, heroes) : null,
         kda,
         duration,
         timeAgo,

@@ -38,28 +38,10 @@ const ASSET_PATHS = {
 export const getHeroIcon = (heroName, animated = false) => {
   debugLog(`Getting hero icon for: "${heroName}", animated: ${animated}`);
   
-  const basePath = animated ? ASSET_PATHS.heroes.animated : ASSET_PATHS.heroes.icons;
-  const assetPath = `${basePath}/${heroName}.png`;
-  
-  debugLog(`Requesting asset: ${assetPath}`);
-  
-  try {
-    // Use dynamic import to get the actual asset URL
-    const assetUrl = new URL(`../assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.png`, import.meta.url).href;
-    debugLog(`Generated asset URL: ${assetUrl}`);
-    return assetUrl;
-  } catch (error) {
-    debugLog(`Asset URL generation failed for ${heroName}:`, error.message);
-    console.warn(`[ASSET WARNING] Hero icon not found: ${heroName} (${animated ? 'animated' : 'static'})`);
-    
-    // Fallback to default hero
-    if (heroName !== 'default') {
-      return getHeroIcon('default', animated);
-    }
-    
-    // Last resort fallback
-    return `${basePath}/default.png`;
-  }
+  // Use simple path-based approach for Vite compatibility
+  const assetPath = `/src/assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.png`;
+  debugLog(`Generated hero asset path: ${assetPath}`);
+  return assetPath;
 };
 
 /**
@@ -70,23 +52,10 @@ export const getHeroIcon = (heroName, animated = false) => {
 export const getAbilityIcon = (abilityName) => {
   debugLog(`Getting ability icon for: "${abilityName}"`);
   
-  try {
-    // Use dynamic import to get the actual asset URL
-    const assetUrl = new URL(`../assets/abilities/${abilityName}.webp`, import.meta.url).href;
-    debugLog(`Generated ability asset URL: ${assetUrl}`);
-    return assetUrl;
-  } catch (error) {
-    debugLog(`Ability asset URL generation failed for ${abilityName}:`, error.message);
-    console.warn(`[ASSET WARNING] Ability icon not found: ${abilityName}`);
-    
-    // Fallback to default ability
-    if (abilityName !== 'ability_default') {
-      return getAbilityIcon('ability_default');
-    }
-    
-    // Last resort fallback
-    return `${ASSET_PATHS.abilities}/ability_default.webp`;
-  }
+  // Use simple path-based approach for Vite compatibility
+  const assetPath = `/src/assets/abilities/${abilityName}.webp`;
+  debugLog(`Generated ability asset path: ${assetPath}`);
+  return assetPath;
 };
 
 /**
@@ -98,32 +67,10 @@ export const getAbilityIcon = (abilityName) => {
 export const getItemIcon = (itemName, format = 'webp') => {
   debugLog(`Getting item icon for: "${itemName}", format: ${format}`);
   
-  try {
-    // Use dynamic import to get the actual asset URL
-    const assetUrl = new URL(`../assets/items/${itemName}.${format}`, import.meta.url).href;
-    debugLog(`Generated item asset URL: ${assetUrl}`);
-    return assetUrl;
-  } catch (error) {
-    debugLog(`Item asset URL generation failed for ${itemName}.${format}:`, error.message);
-    console.warn(`[ASSET WARNING] Item icon not found: ${itemName}.${format}`);
-    
-    // Try alternate format
-    if (format === 'webp') {
-      try {
-        return getItemIcon(itemName, 'png');
-      } catch {
-        // Continue to default fallback
-      }
-    }
-    
-    // Fallback to default item
-    if (itemName !== 'item_default') {
-      return getItemIcon('item_default', format);
-    }
-    
-    // Last resort fallback
-    return `${ASSET_PATHS.items}/item_default.${format}`;
-  }
+  // Use simple path-based approach for Vite compatibility
+  const assetPath = `/src/assets/items/${itemName}.${format}`;
+  debugLog(`Generated item asset path: ${assetPath}`);
+  return assetPath;
 };
 
 /**
@@ -134,18 +81,10 @@ export const getItemIcon = (itemName, format = 'webp') => {
 export const getRuneIcon = (runeName) => {
   debugLog(`Getting rune icon for: "${runeName}"`);
   
-  try {
-    // Use dynamic import to get the actual asset URL
-    const assetUrl = new URL(`../assets/runes/${runeName}.webp`, import.meta.url).href;
-    debugLog(`Generated rune asset URL: ${assetUrl}`);
-    return assetUrl;
-  } catch (error) {
-    debugLog(`Rune asset URL generation failed for ${runeName}:`, error.message);
-    console.warn(`[ASSET WARNING] Rune icon not found: ${runeName}`);
-    
-    // Last resort fallback
-    return `${ASSET_PATHS.runes}/${runeName}.webp`;
-  }
+  // Use simple path-based approach for Vite compatibility
+  const assetPath = `/src/assets/runes/${runeName}.webp`;
+  debugLog(`Generated rune asset path: ${assetPath}`);
+  return assetPath;
 };
 
 /**
@@ -156,18 +95,10 @@ export const getRuneIcon = (runeName) => {
 export const getFacetIcon = (facetName) => {
   debugLog(`Getting facet icon for: "${facetName}"`);
   
-  try {
-    // Use dynamic import to get the actual asset URL
-    const assetUrl = new URL(`../assets/facets/${facetName}.webp`, import.meta.url).href;
-    debugLog(`Generated facet asset URL: ${assetUrl}`);
-    return assetUrl;
-  } catch (error) {
-    debugLog(`Facet asset URL generation failed for ${facetName}:`, error.message);
-    console.warn(`[ASSET WARNING] Facet icon not found: ${facetName}`);
-    
-    // Last resort fallback
-    return `${ASSET_PATHS.facets}/${facetName}.webp`;
-  }
+  // Use simple path-based approach for Vite compatibility
+  const assetPath = `/src/assets/facets/${facetName}.webp`;
+  debugLog(`Generated facet asset path: ${assetPath}`);
+  return assetPath;
 };
 
 /**
@@ -221,8 +152,8 @@ export const getItemIconSafe = (itemName, format = 'webp') => {
   debugLog(`Getting item icon safely for: "${itemName}", format: ${format}`);
   
   if (!itemName) {
-    debugLog('No item name provided, using filler_ability');
-    return getItemIcon('filler_ability', format);
+    debugLog('No item name provided, using item_default');
+    return getItemIcon('item_default', format);
   }
   return getItemIcon(itemName, format);
 };
@@ -242,27 +173,70 @@ export const assetExists = async (assetPath) => {
   }
 };
 
-// Common hero name mappings (OpenDota name -> asset filename)
+// Complete hero name mappings (OpenDota API name -> asset filename)
 export const HERO_NAME_MAPPINGS = {
+  // Core heroes with name mismatches
   'Anti-Mage': 'antimage',
   'Ancient Apparition': 'ancient_apparition',
   'Centaur Warrunner': 'centaur',
   'Clockwerk': 'rattletrap',
   'Doom': 'doom_bringer',
+  'Dragon Knight': 'dragon_knight',
+  'Drow Ranger': 'drow_ranger',
+  'Faceless Void': 'faceless_void',
   'Io': 'wisp',
+  'Keeper of the Light': 'keeper_of_the_light',
   'Lifestealer': 'life_stealer',
   'Magnus': 'magnataur',
   'Nature\'s Prophet': 'furion',
   'Necrophos': 'necrolyte',
+  'Night Stalker': 'night_stalker',
+  'Nyx Assassin': 'nyx_assassin',
+  'Ogre Magi': 'ogre_magi',
   'Outworld Destroyer': 'obsidian_destroyer',
+  'Phantom Assassin': 'phantom_assassin',
+  'Phantom Lancer': 'phantom_lancer',
+  'Primal Beast': 'primal_beast',
   'Queen of Pain': 'queenofpain',
+  'Sand King': 'sand_king',
+  'Shadow Demon': 'shadow_demon',
   'Shadow Fiend': 'nevermore',
+  'Shadow Shaman': 'shadow_shaman',
+  'Skywrath Mage': 'skywrath_mage',
+  'Spirit Breaker': 'spirit_breaker',
   'Storm Spirit': 'storm_spirit',
+  'Templar Assassin': 'templar_assassin',
   'Timbersaw': 'shredder',
+  'Treant Protector': 'treant',
+  'Troll Warlord': 'troll_warlord',
   'Underlord': 'abyssal_underlord',
   'Vengeful Spirit': 'vengefulspirit',
+  'Void Spirit': 'void_spirit',
   'Windranger': 'windrunner',
-  'Wraith King': 'skeleton_king'
+  'Winter Wyvern': 'winter_wyvern',
+  'Witch Doctor': 'witch_doctor',
+  'Wraith King': 'skeleton_king',
+  'Zeus': 'zuus',
+  // Modern heroes (exact matches with our assets)
+  'Arc Warden': 'arc_warden',
+  'Dark Willow': 'dark_willow',
+  'Dawnbreaker': 'dawnbreaker',
+  'Earth Spirit': 'earth_spirit',
+  'Elder Titan': 'elder_titan',
+  'Ember Spirit': 'ember_spirit',
+  'Grimstroke': 'grimstroke',
+  'Hoodwink': 'hoodwink',
+  'Kez': 'kez',
+  'Legion Commander': 'legion_commander',
+  'Lone Druid': 'lone_druid',
+  'Marci': 'marci',
+  'Mars': 'mars',
+  'Monkey King': 'monkey_king',
+  'Muerta': 'muerta',
+  'Naga Siren': 'naga_siren',
+  'Pangolier': 'pangolier',
+  'Ringmaster': 'ringmaster',
+  'Snapfire': 'snapfire'
 };
 
 /**
@@ -283,7 +257,9 @@ export const normalizeHeroName = (heroName) => {
   const normalized = heroName
     .toLowerCase()
     .replace(/['\s-]/g, '_')
-    .replace(/[^a-z0-9_]/g, '');
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/__+/g, '_') // Remove multiple underscores
+    .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
     
   debugLog(`Normalized hero name: "${heroName}" -> "${normalized}"`);
   return normalized;
