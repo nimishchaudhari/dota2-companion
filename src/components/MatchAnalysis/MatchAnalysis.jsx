@@ -19,12 +19,9 @@ import { gamingColors } from '../../theme/antdTheme.js';
 import { AuthContext } from '../../contexts/AuthContext.js';
 import { 
   getHeroIcon, 
-  getAbilityIcon, 
   getItemIcon, 
-  getRuneIcon,
   getHeroIconById,
-  getItemIconSafe,
-  normalizeHeroName 
+  getItemIconSafe
 } from '../../utils/assetHelpers.js';
 
 const { Content } = Layout;
@@ -204,7 +201,7 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                   Laning Phase
                 </span>
               ),
-              children: <LaningPhaseTab matchData={matchData} playerData={playerData} />
+              children: <LaningPhaseTab playerData={playerData} />
             },
             {
               key: 'economy',
@@ -253,15 +250,6 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
   );
 };
 
-// Helper function for performance grades
-const getPerformanceGrade = (value, benchmarks) => {
-  if (!benchmarks || !value) return 'B';
-  if (value >= benchmarks[90]) return 'S';
-  if (value >= benchmarks[80]) return 'A';
-  if (value >= benchmarks[60]) return 'B';
-  if (value >= benchmarks[40]) return 'C';
-  return 'D';
-};
 
 const getGradeColor = (grade) => {
   const colors = {
@@ -915,13 +903,11 @@ const EnhancedPerformanceTab = ({ matchData, playerData }) => {
 };
 
 // Laning Phase Analysis Tab
-const LaningPhaseTab = ({ matchData, playerData }) => {
-  if (!playerData) {
-    return <Alert message="Player data not found in this match" type="warning" />;
-  }
-  
+const LaningPhaseTab = ({ playerData }) => {
   // Extract laning data (first 10 minutes)
   const laningData = useMemo(() => {
+    if (!playerData) return { csData: [], xpData: [] };
+    
     const csData = [];
     const xpData = [];
     
@@ -945,6 +931,8 @@ const LaningPhaseTab = ({ matchData, playerData }) => {
   
   // Calculate lane outcome
   const laneOutcome = useMemo(() => {
+    if (!playerData) return { outcome: 'UNKNOWN', color: 'gray', description: 'No data available' };
+    
     const lastHitsAt10 = playerData.lh_t?.[9] || 0;
     const xpAt10 = playerData.xp_t?.[9] || 0;
     const deathsInLane = playerData.life_state?.slice(0, 600).filter(s => s === 2).length || 0;
@@ -964,6 +952,10 @@ const LaningPhaseTab = ({ matchData, playerData }) => {
     if (score >= 2) return { outcome: 'DRAW', color: 'blue', description: 'Even lane' };
     return { outcome: 'LOST', color: 'red', description: 'Struggled in lane' };
   }, [playerData]);
+  
+  if (!playerData) {
+    return <Alert message="Player data not found in this match" type="warning" />;
+  }
   
   // CS/XP Line Chart Config
   const csChartConfig = {
@@ -1174,13 +1166,9 @@ const LaningPhaseTab = ({ matchData, playerData }) => {
 
 // Economy & Resources Tab Component
 const EconomyResourcesTab = ({ matchData, playerData }) => {
-  if (!playerData) {
-    return <Alert message="Player data not found in this match" type="warning" />;
-  }
-  
   // Calculate net worth progression
   const netWorthData = useMemo(() => {
-    if (!playerData.gold_t) return [];
+    if (!playerData?.gold_t) return [];
     return playerData.gold_t.map((gold, index) => ({
       time: index,
       value: gold,
@@ -1192,6 +1180,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
   
   // Calculate gold sources
   const goldSources = useMemo(() => {
+    if (!playerData) return [];
     const total = playerData.total_gold || 1;
     return [
       { type: 'Creeps', value: playerData.gold_reasons?.['0'] || 0, percent: ((playerData.gold_reasons?.['0'] || 0) / total * 100).toFixed(1) },
@@ -1203,6 +1192,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
   
   // Item timing analysis
   const keyItemTimings = useMemo(() => {
+    if (!playerData) return [];
     const benchmarkItems = {
       'blink': { name: 'Blink Dagger', benchmark: 15 },
       'black_king_bar': { name: 'Black King Bar', benchmark: 25 },
@@ -1230,6 +1220,10 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
     }
     return timings;
   }, [playerData]);
+  
+  if (!playerData) {
+    return <Alert message="Player data not found in this match" type="warning" />;
+  }
 
   const itemSlots = [
     playerData.item_0,
@@ -1645,15 +1639,12 @@ const GraphsTab = ({ matchData, teamData: TEAMDATA }) => {
 
 // Combat Intelligence Tab Component
 const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
-  if (!playerData) {
-    return <Alert message="Player data not found in this match" type="warning" />;
-  }
-  
   // Calculate teamfight impact
   const teamfightData = useMemo(() => {
+    if (!playerData) return [];
     const fights = [];
     if (matchData.teamfights) {
-      matchData.teamfights.forEach((fight, idx) => {
+      matchData.teamfights.forEach((fight) => {
         const playerFight = fight.players[playerData.player_slot] || {};
         fights.push({
           time: `${Math.floor(fight.start / 60)}:${(fight.start % 60).toString().padStart(2, '0')}`,
@@ -1671,6 +1662,7 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
   
   // Death analysis
   const deathAnalysis = useMemo(() => {
+    if (!playerData) return [];
     const deaths = [];
     if (playerData.killed) {
       Object.entries(playerData.killed).forEach(([heroId, kills]) => {
@@ -1683,6 +1675,10 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
     }
     return deaths.sort((a, b) => b.kills - a.kills);
   }, [playerData]);
+  
+  if (!playerData) {
+    return <Alert message="Player data not found in this match" type="warning" />;
+  }
 
   const damageData = [
     { type: 'Hero Damage', value: playerData.hero_damage || 0 },
@@ -1872,12 +1868,21 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
 
 // Vision & Map Control Tab Component
 const VisionMapControlTab = ({ matchData, playerData }) => {
-  if (!playerData) {
-    return <Alert message="Player data not found in this match" type="warning" />;
-  }
-  
   // Enhanced vision statistics with advanced calculations
   const visionStats = useMemo(() => {
+    if (!playerData) {
+      return {
+        wardUptime: 0,
+        dewardEfficiency: 0,
+        visionScore: 0,
+        wardsPerMinute: 0,
+        visionDensity: 0,
+        visionGrade: 'D',
+        obsKills: 0,
+        senKills: 0
+      };
+    }
+    
     const obs = playerData.obs_placed || 0;
     const sen = playerData.sen_placed || 0;
     const obsKills = playerData.observer_kills || 0;
@@ -1912,13 +1917,15 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
 
   // Ward placement timeline analysis
   const wardTimeline = useMemo(() => {
+    if (!playerData) return [];
+    
     const timeline = [];
     
     // Extract ward placement data from logs
     if (playerData.obs_log) {
-      playerData.obs_log.forEach((ward, index) => {
+      playerData.obs_log.forEach((ward, INDEX) => {
         timeline.push({
-          time: ward.time || (index * 300), // fallback timing
+          time: ward.time || (INDEX * 300), // fallback timing
           type: 'observer',
           x: ward.x || Math.random() * 200,
           y: ward.y || Math.random() * 200,
@@ -1928,9 +1935,9 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
     }
     
     if (playerData.sen_log) {
-      playerData.sen_log.forEach((ward, index) => {
+      playerData.sen_log.forEach((ward, INDEX) => {
         timeline.push({
-          time: ward.time || (index * 240),
+          time: ward.time || (INDEX * 240),
           type: 'sentry',
           x: ward.x || Math.random() * 200,
           y: ward.y || Math.random() * 200,
@@ -1944,6 +1951,15 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
 
   // Calculate map control metrics
   const mapControl = useMemo(() => {
+    if (!playerData) {
+      return {
+        jungleControl: 0,
+        objectiveControl: 0,
+        mapPresence: 0,
+        overallControl: 0
+      };
+    }
+    
     const roshKills = playerData.roshan_kills || 0;
     const ancientKills = playerData.ancient_kills || 0;
     const neutralKills = playerData.neutral_kills || 0;
@@ -1960,6 +1976,10 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
       overallControl: Math.min((jungleControl + objectiveControl + mapPresence) / 3, 5)
     };
   }, [playerData, matchData]);
+  
+  if (!playerData) {
+    return <Alert message="Player data not found in this match" type="warning" />;
+  }
   
   return (
     <Row gutter={[16, 16]}>
@@ -2228,12 +2248,11 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
 
 // Enhanced Improvement Insights Tab Component
 const ImprovementInsightsTab = ({ matchData, playerData }) => {
-  if (!playerData) {
-    return <Alert message="Player data not found in this match" type="warning" />;
-  }
-  
   // Advanced insights generation with detailed analysis
   const insights = useMemo(() => {
+    if (!playerData) {
+      return { tips: [], gameImpact: [], mistakes: [], strengths: [] };
+    }
     const tips = [];
     const gameImpact = [];
     const mistakes = [];
@@ -2345,6 +2364,8 @@ const ImprovementInsightsTab = ({ matchData, playerData }) => {
 
   // Generate actionable coaching points
   const coachingPoints = useMemo(() => {
+    if (!playerData) return [];
+    
     const points = [];
     
     // Role-specific coaching
@@ -2378,6 +2399,10 @@ const ImprovementInsightsTab = ({ matchData, playerData }) => {
     
     return points;
   }, [playerData, matchData]);
+  
+  if (!playerData) {
+    return <Alert message="Player data not found in this match" type="warning" />;
+  }
   
   return (
     <Row gutter={[16, 16]}>
@@ -2439,7 +2464,7 @@ const ImprovementInsightsTab = ({ matchData, playerData }) => {
           {insights.mistakes.length > 0 ? (
             <List
               dataSource={insights.mistakes}
-              renderItem={(mistake, index) => (
+              renderItem={(mistake) => (
                 <List.Item className="border-gray-700">
                   <div className="w-full">
                     <div className="flex items-center justify-between mb-2">
@@ -2510,7 +2535,7 @@ const ImprovementInsightsTab = ({ matchData, playerData }) => {
           {coachingPoints.length > 0 ? (
             <List
               dataSource={coachingPoints}
-              renderItem={(point, index) => (
+              renderItem={(point) => (
                 <List.Item className="border-gray-700">
                   <div className="w-full">
                     <div className="flex items-center justify-between mb-2">
