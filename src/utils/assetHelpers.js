@@ -15,73 +15,7 @@ const debugLog = (message, data = null) => {
   }
 };
 
-// Initialize asset maps using import.meta.glob for static asset discovery
-let heroIconsMap = {};
-let heroAnimatedMap = {};
-let abilitiesMap = {};
-let itemsMap = {};
-let runesMap = {};
-let facetsMap = {};
-
-// Populate asset maps
-const initializeAssetMaps = () => {
-  try {
-    // Hero icons
-    const heroIcons = import.meta.glob('/src/assets/heroes/icons/*.png', { eager: true, as: 'url' });
-    heroIconsMap = heroIcons;
-    debugLog(`Loaded ${Object.keys(heroIconsMap).length} hero icons`);
-    if (Object.keys(heroIconsMap).length > 0) {
-      debugLog('Sample hero icon entry:', Object.entries(heroIconsMap)[0]);
-    }
-
-    // Hero animated
-    const heroAnimated = import.meta.glob('/src/assets/heroes/animated/*.png', { eager: true, as: 'url' });
-    heroAnimatedMap = heroAnimated;
-    debugLog(`Loaded ${Object.keys(heroAnimatedMap).length} animated hero icons`);
-    if (Object.keys(heroAnimatedMap).length > 0) {
-      debugLog('Sample animated hero entry:', Object.entries(heroAnimatedMap)[0]);
-    }
-
-    // Abilities
-    const abilities = import.meta.glob('/src/assets/abilities/*.webp', { eager: true, as: 'url' });
-    abilitiesMap = abilities;
-    debugLog(`Loaded ${Object.keys(abilitiesMap).length} ability icons`);
-    if (Object.keys(abilitiesMap).length > 0) {
-      debugLog('Sample ability entry:', Object.entries(abilitiesMap)[0]);
-    }
-
-    // Items
-    const items = import.meta.glob('/src/assets/items/*.{png,webp}', { eager: true, as: 'url' });
-    itemsMap = items;
-    debugLog(`Loaded ${Object.keys(itemsMap).length} item icons`);
-    if (Object.keys(itemsMap).length > 0) {
-      debugLog('Sample item entry:', Object.entries(itemsMap)[0]);
-    }
-
-    // Runes
-    const runes = import.meta.glob('/src/assets/runes/*.webp', { eager: true, as: 'url' });
-    runesMap = runes;
-    debugLog(`Loaded ${Object.keys(runesMap).length} rune icons`);
-    if (Object.keys(runesMap).length > 0) {
-      debugLog('Sample rune entry:', Object.entries(runesMap)[0]);
-    }
-
-    // Facets
-    const facets = import.meta.glob('/src/assets/facets/*.webp', { eager: true, as: 'url' });
-    facetsMap = facets;
-    debugLog(`Loaded ${Object.keys(facetsMap).length} facet icons`);
-    if (Object.keys(facetsMap).length > 0) {
-      debugLog('Sample facet entry:', Object.entries(facetsMap)[0]);
-    }
-
-    debugLog('Asset map initialization complete');
-  } catch (error) {
-    debugLog('Error initializing asset maps:', error);
-  }
-};
-
-// Initialize on module load
-initializeAssetMaps();
+debugLog('Asset helper module initialized with Vite URL resolver');
 
 // Base paths for different asset categories
 const ASSET_PATHS = {
@@ -99,52 +33,59 @@ const ASSET_PATHS = {
  * Get hero icon path
  * @param {string} heroName - Hero name (e.g., 'pudge', 'invoker')
  * @param {boolean} animated - Whether to get animated version (default: false)
- * @returns {string} Asset path
+ * @returns {string} Asset URL for use in img src
  */
 export const getHeroIcon = (heroName, animated = false) => {
   debugLog(`Getting hero icon for: "${heroName}", animated: ${animated}`);
   
-  const assetMap = animated ? heroAnimatedMap : heroIconsMap;
   const basePath = animated ? ASSET_PATHS.heroes.animated : ASSET_PATHS.heroes.icons;
-  const expectedPath = `${basePath}/${heroName}.png`;
+  const assetPath = `${basePath}/${heroName}.png`;
   
-  debugLog(`Looking for asset at: ${expectedPath}`);
-  debugLog(`Available in map: ${assetMap[expectedPath] ? 'YES' : 'NO'}`);
-  debugLog(`Total assets in ${animated ? 'animated' : 'static'} hero map: ${Object.keys(assetMap).length}`);
+  debugLog(`Requesting asset: ${assetPath}`);
   
-  if (assetMap[expectedPath]) {
-    debugLog(`Found hero asset URL: ${assetMap[expectedPath]}`);
-    return assetMap[expectedPath];
-  } else {
-    debugLog(`Hero asset NOT FOUND in map. Available keys:`, Object.keys(assetMap).slice(0, 5));
+  try {
+    // Use dynamic import to get the actual asset URL
+    const assetUrl = new URL(`../assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.png`, import.meta.url).href;
+    debugLog(`Generated asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Asset URL generation failed for ${heroName}:`, error.message);
     console.warn(`[ASSET WARNING] Hero icon not found: ${heroName} (${animated ? 'animated' : 'static'})`);
-    // Fallback to path-based approach
-    return expectedPath;
+    
+    // Fallback to default hero
+    if (heroName !== 'default') {
+      return getHeroIcon('default', animated);
+    }
+    
+    // Last resort fallback
+    return `${basePath}/default.png`;
   }
 };
 
 /**
  * Get ability icon path
  * @param {string} abilityName - Ability name (e.g., 'pudge_meat_hook')
- * @returns {string} Asset path
+ * @returns {string} Asset URL for use in img src
  */
 export const getAbilityIcon = (abilityName) => {
   debugLog(`Getting ability icon for: "${abilityName}"`);
   
-  const expectedPath = `${ASSET_PATHS.abilities}/${abilityName}.webp`;
-  
-  debugLog(`Looking for ability asset at: ${expectedPath}`);
-  debugLog(`Available in map: ${abilitiesMap[expectedPath] ? 'YES' : 'NO'}`);
-  debugLog(`Total abilities in map: ${Object.keys(abilitiesMap).length}`);
-  
-  if (abilitiesMap[expectedPath]) {
-    debugLog(`Found ability asset URL: ${abilitiesMap[expectedPath]}`);
-    return abilitiesMap[expectedPath];
-  } else {
-    debugLog(`Ability asset NOT FOUND in map. Available keys:`, Object.keys(abilitiesMap).slice(0, 5));
+  try {
+    // Use dynamic import to get the actual asset URL
+    const assetUrl = new URL(`../assets/abilities/${abilityName}.webp`, import.meta.url).href;
+    debugLog(`Generated ability asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Ability asset URL generation failed for ${abilityName}:`, error.message);
     console.warn(`[ASSET WARNING] Ability icon not found: ${abilityName}`);
-    // Fallback to path-based approach
-    return expectedPath;
+    
+    // Fallback to default ability
+    if (abilityName !== 'ability_default') {
+      return getAbilityIcon('ability_default');
+    }
+    
+    // Last resort fallback
+    return `${ASSET_PATHS.abilities}/ability_default.webp`;
   }
 };
 
@@ -152,75 +93,80 @@ export const getAbilityIcon = (abilityName) => {
  * Get item icon path
  * @param {string} itemName - Item name (e.g., 'black_king_bar')
  * @param {string} format - File format ('png' or 'webp', default: 'webp')
- * @returns {string} Asset path
+ * @returns {string} Asset URL for use in img src
  */
 export const getItemIcon = (itemName, format = 'webp') => {
   debugLog(`Getting item icon for: "${itemName}", format: ${format}`);
   
-  const expectedPath = `${ASSET_PATHS.items}/${itemName}.${format}`;
-  
-  debugLog(`Looking for item asset at: ${expectedPath}`);
-  debugLog(`Available in map: ${itemsMap[expectedPath] ? 'YES' : 'NO'}`);
-  debugLog(`Total items in map: ${Object.keys(itemsMap).length}`);
-  
-  if (itemsMap[expectedPath]) {
-    debugLog(`Found item asset URL: ${itemsMap[expectedPath]}`);
-    return itemsMap[expectedPath];
-  } else {
-    debugLog(`Item asset NOT FOUND in map. Available keys:`, Object.keys(itemsMap).slice(0, 5));
+  try {
+    // Use dynamic import to get the actual asset URL
+    const assetUrl = new URL(`../assets/items/${itemName}.${format}`, import.meta.url).href;
+    debugLog(`Generated item asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Item asset URL generation failed for ${itemName}.${format}:`, error.message);
     console.warn(`[ASSET WARNING] Item icon not found: ${itemName}.${format}`);
-    // Fallback to path-based approach
-    return expectedPath;
+    
+    // Try alternate format
+    if (format === 'webp') {
+      try {
+        return getItemIcon(itemName, 'png');
+      } catch {
+        // Continue to default fallback
+      }
+    }
+    
+    // Fallback to default item
+    if (itemName !== 'item_default') {
+      return getItemIcon('item_default', format);
+    }
+    
+    // Last resort fallback
+    return `${ASSET_PATHS.items}/item_default.${format}`;
   }
 };
 
 /**
  * Get rune icon path
  * @param {string} runeName - Rune name
- * @returns {string} Asset path
+ * @returns {string} Asset URL for use in img src
  */
 export const getRuneIcon = (runeName) => {
   debugLog(`Getting rune icon for: "${runeName}"`);
   
-  const expectedPath = `${ASSET_PATHS.runes}/${runeName}.webp`;
-  
-  debugLog(`Looking for rune asset at: ${expectedPath}`);
-  debugLog(`Available in map: ${runesMap[expectedPath] ? 'YES' : 'NO'}`);
-  debugLog(`Total runes in map: ${Object.keys(runesMap).length}`);
-  
-  if (runesMap[expectedPath]) {
-    debugLog(`Found rune asset URL: ${runesMap[expectedPath]}`);
-    return runesMap[expectedPath];
-  } else {
-    debugLog(`Rune asset NOT FOUND in map. Available keys:`, Object.keys(runesMap).slice(0, 5));
+  try {
+    // Use dynamic import to get the actual asset URL
+    const assetUrl = new URL(`../assets/runes/${runeName}.webp`, import.meta.url).href;
+    debugLog(`Generated rune asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Rune asset URL generation failed for ${runeName}:`, error.message);
     console.warn(`[ASSET WARNING] Rune icon not found: ${runeName}`);
-    // Fallback to path-based approach
-    return expectedPath;
+    
+    // Last resort fallback
+    return `${ASSET_PATHS.runes}/${runeName}.webp`;
   }
 };
 
 /**
  * Get facet icon path
  * @param {string} facetName - Facet name
- * @returns {string} Asset path
+ * @returns {string} Asset URL for use in img src
  */
 export const getFacetIcon = (facetName) => {
   debugLog(`Getting facet icon for: "${facetName}"`);
   
-  const expectedPath = `${ASSET_PATHS.facets}/${facetName}.webp`;
-  
-  debugLog(`Looking for facet asset at: ${expectedPath}`);
-  debugLog(`Available in map: ${facetsMap[expectedPath] ? 'YES' : 'NO'}`);
-  debugLog(`Total facets in map: ${Object.keys(facetsMap).length}`);
-  
-  if (facetsMap[expectedPath]) {
-    debugLog(`Found facet asset URL: ${facetsMap[expectedPath]}`);
-    return facetsMap[expectedPath];
-  } else {
-    debugLog(`Facet asset NOT FOUND in map. Available keys:`, Object.keys(facetsMap).slice(0, 5));
+  try {
+    // Use dynamic import to get the actual asset URL
+    const assetUrl = new URL(`../assets/facets/${facetName}.webp`, import.meta.url).href;
+    debugLog(`Generated facet asset URL: ${assetUrl}`);
+    return assetUrl;
+  } catch (error) {
+    debugLog(`Facet asset URL generation failed for ${facetName}:`, error.message);
     console.warn(`[ASSET WARNING] Facet icon not found: ${facetName}`);
-    // Fallback to path-based approach
-    return expectedPath;
+    
+    // Last resort fallback
+    return `${ASSET_PATHS.facets}/${facetName}.webp`;
   }
 };
 
