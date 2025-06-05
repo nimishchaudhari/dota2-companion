@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import { darkTheme } from './theme/antdTheme.js';
 import MatchAnalysis from './components/MatchAnalysis/MatchAnalysis.jsx';
+import AssetTest from './components/AssetTest.jsx';
 
 const { Header, Content, Sider } = Layout;
 import { 
@@ -1456,6 +1457,11 @@ const SimpleRouter = () => {
   if (path === '/auth/steam/callback') {
     // Handle Steam authentication callback
     return <AuthCallbackHandler />;
+  }
+  
+  if (path === '/asset-test') {
+    // Asset verification test page (no auth required)
+    return <AssetTest />;
   }
   
   return <AppContent />;
