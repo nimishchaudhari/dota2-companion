@@ -1,0 +1,165 @@
+name: Update Claude OAuth Token
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch: # 수동 실행 가능
+    inputs:
+      force:
+        description: 'Force token refresh regardless of expiration'
+        required: false
+        default: false
+        type: boolean
+jobs:
+  update-token:
+    runs-on: ubuntu-latest
+    env:
+      TOKEN_URL: https://console.anthropic.com/v1/oauth/token
+      CLIENT_ID: 9d1c250a-e61b-44d9-88ed-5944d1962f5e
+      ACCESS_TOKEN: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+      REFRESH_TOKEN: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+      EXPIRES_AT: ${{ secrets.CLAUDE_EXPIRES_AT }}
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Check token expiration
+      id: check-expiration
+      run: |
+        CURRENT_TIME_MS=$(date +%s000)
+        
+        echo "Current time: $CURRENT_TIME_MS"
+        echo "Token expires at: $EXPIRES_AT"
+        
+        # 1시간 임계값으로 갱신 필요 여부 체크
+        THRESHOLD=$((CURRENT_TIME_MS + 3600000))
+        
+        # Force 옵션이 활성화된 경우 무조건 갱신
+        if [ "${{ github.event.inputs.force }}" = "true" ]; then
+          echo "Force refresh requested"
+          echo "TOKEN_VALID=false" >> $GITHUB_OUTPUT
+        elif [ "$THRESHOLD" -lt "$EXPIRES_AT" ]; then
+          echo "Token still valid"
+          echo "TOKEN_VALID=true" >> $GITHUB_OUTPUT
+        else
+          echo "Token needs refresh within 1 hour, refreshing..."
+          echo "TOKEN_VALID=false" >> $GITHUB_OUTPUT
+        fi
+                
+    - name: Refresh Claude Token
+      id: refresh
+      if: steps.check-expiration.outputs.TOKEN_VALID == 'false'
+      run: |
+        # 토큰 갱신 요청 (curl 사용)
+        RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST "$TOKEN_URL" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"grant_type\": \"refresh_token\",
+            \"refresh_token\": \"$REFRESH_TOKEN\",
+            \"client_id\": \"$CLIENT_ID\"
+          }")
+        
+        # HTTP 상태 코드와 응답 분리
+        HTTP_STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+        RESPONSE_BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS:.*//g')
+        
+        if [ "$HTTP_STATUS" -ne 200 ]; then
+          echo "Error: HTTP $HTTP_STATUS"
+          echo "Response: $RESPONSE_BODY"
+          exit 1
+        fi
+        
+        # JSON 응답에서 토큰 정보 추출
+        NEW_ACCESS_TOKEN=$(echo "$RESPONSE_BODY" | jq -r '.access_token')
+        NEW_REFRESH_TOKEN=$(echo "$RESPONSE_BODY" | jq -r '.refresh_token // empty')
+        EXPIRES_IN=$(echo "$RESPONSE_BODY" | jq -r '.expires_in')
+
+        # 필수 필드 검증
+        if [ -z "$NEW_ACCESS_TOKEN" ] || [ "$NEW_ACCESS_TOKEN" = "null" ]; then
+          echo "Error: Failed to extract access token from response"
+          exit 1
+        fi
+        
+        if [ -z "$EXPIRES_IN" ] || [ "$EXPIRES_IN" = "null" ]; then
+          echo "Error: Failed to extract expires_in from response"
+          exit 1
+        fi
+
+        CURRENT_TIME_MS=$(date +%s000)
+
+        # 새 만료 시간 계산 (현재 시간 + expires_in * 1000)
+        NEW_EXPIRES_AT=$((CURRENT_TIME_MS + (EXPIRES_IN * 1000)))
+        
+        # 새 refresh_token이 없으면 기존 것 유지 (원본 로직과 동일)
+        if [ "$NEW_REFRESH_TOKEN" = "null" ] || [ -z "$NEW_REFRESH_TOKEN" ]; then
+          NEW_REFRESH_TOKEN="$REFRESH_TOKEN"
+        fi
+        
+        echo "Token refreshed successfully"
+        echo "New token expires at: $NEW_EXPIRES_AT"
+        
+        # GitHub Actions outputs 설정
+        echo "TOKEN_REFRESHED=true" >> $GITHUB_OUTPUT
+        echo "::add-mask::$NEW_ACCESS_TOKEN"
+        echo "NEW_ACCESS_TOKEN=$NEW_ACCESS_TOKEN" >> $GITHUB_OUTPUT
+        echo "::add-mask::$NEW_REFRESH_TOKEN"
+        echo "NEW_REFRESH_TOKEN=$NEW_REFRESH_TOKEN" >> $GITHUB_OUTPUT
+        echo "NEW_EXPIRES_AT=$NEW_EXPIRES_AT" >> $GITHUB_OUTPUT
+        
+        
+    - name: Update GitHub Secrets
+      if: steps.refresh.outputs.TOKEN_REFRESHED == 'true'
+      run: |
+        echo "Updating GitHub secrets..."
+        
+        # 토큰 값 검증 후 업데이트
+        if [ -n "${{ steps.refresh.outputs.NEW_ACCESS_TOKEN }}" ]; then
+          gh secret set CLAUDE_ACCESS_TOKEN --body "${{ steps.refresh.outputs.NEW_ACCESS_TOKEN }}" --org "${{ github.repository_owner }}"
+          echo "Access token updated"
+        else
+          echo "Error: New access token is empty"
+          exit 1
+        fi
+        
+        if [ -n "${{ steps.refresh.outputs.NEW_REFRESH_TOKEN }}" ]; then
+          gh secret set CLAUDE_REFRESH_TOKEN --body "${{ steps.refresh.outputs.NEW_REFRESH_TOKEN }}" --org "${{ github.repository_owner }}"
+          echo "Refresh token updated"
+        else
+          echo "Error: New refresh token is empty"
+          exit 1
+        fi
+        
+        if [ -n "${{ steps.refresh.outputs.NEW_EXPIRES_AT }}" ]; then
+          gh secret set CLAUDE_EXPIRES_AT --body "${{ steps.refresh.outputs.NEW_EXPIRES_AT }}" --org "${{ github.repository_owner }}"
+          echo "Expires at updated"
+        else
+          echo "Error: New expires at is empty"
+          exit 1
+        fi
+        
+        echo "GitHub secrets updated successfully"
+      env:
+        GH_TOKEN: ${{ secrets.ORG_TOKEN }}
+        
+    - name: Log token status
+      run: |
+        if [ "${{ steps.refresh.outputs.TOKEN_REFRESHED }}" == "true" ]; then
+          echo "✅ Token was renewed"
+          # 새 만료 시간을 사람이 읽기 쉬운 형태로 표시
+          NEW_EXPIRES_SECONDS=$((${{ steps.refresh.outputs.NEW_EXPIRES_AT }} / 1000))
+          echo "🕐 New expiration: $(date -d @$NEW_EXPIRES_SECONDS)"
+        else
+          echo "ℹ️ Token is still valid, no renewal needed"
+          # 현재 만료 시간을 사람이 읽기 쉬운 형태로 표시
+          CURRENT_EXPIRES_SECONDS=$((${{ secrets.CLAUDE_EXPIRES_AT }} / 1000))
+          echo "🕐 Current expiration: $(date -d @$CURRENT_EXPIRES_SECONDS)"
+        fi
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Claude OAuth token refresh failed!"
+        # 필요시 Slack 등으로 알림 전송
+        # curl -X POST -H 'Content-type: application/json' \
+        #   --data '{"text":"Claude OAuth token refresh failed!"}' \
+        #   ${{ secrets.SLACK_WEBHOOK_URL }}
