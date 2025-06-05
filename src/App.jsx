@@ -52,6 +52,7 @@ import { clsx } from 'clsx';
 import authService from './services/auth.service.js';
 import { DataProvider, useData } from './contexts/DataContext.jsx';
 import { AuthContext } from './contexts/AuthContext.js';
+import { useAuth } from './hooks/useAuth.js';
 import AntDashboard from './components/Dashboard/AntDashboard.jsx';
 import './styles/dashboard.css';
 import {
@@ -245,14 +246,7 @@ const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use auth context
-const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// Note: useAuth hook is now imported from hooks/useAuth.js for consistency
 
 // Animation variants
 const pageTransition = {
