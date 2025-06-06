@@ -260,17 +260,39 @@ class AuthService {
     return response.json();
   }
 
+  // Get deployment-appropriate URLs for Steam OAuth
+  getDeploymentUrls() {
+    const origin = window.location.origin;
+    
+    // For production deployments with explicit configuration
+    if (import.meta.env.VITE_STEAM_RETURN_URL && import.meta.env.VITE_STEAM_REALM) {
+      return {
+        returnUrl: import.meta.env.VITE_STEAM_RETURN_URL,
+        realm: import.meta.env.VITE_STEAM_REALM
+      };
+    }
+    
+    // For branch/preview deployments, auto-detect from current origin
+    return {
+      returnUrl: `${origin}/auth/steam/callback`,
+      realm: origin
+    };
+  }
+
   // Steam OpenID Authentication
   async initiateSteamLogin() {
+    const { returnUrl, realm } = this.getDeploymentUrls();
+    
     const params = new URLSearchParams({
       'openid.ns': 'http://specs.openid.net/auth/2.0',
       'openid.mode': 'checkid_setup',
-      'openid.return_to': import.meta.env.VITE_STEAM_RETURN_URL || `${window.location.origin}/auth/steam/callback`,
-      'openid.realm': import.meta.env.VITE_STEAM_REALM || window.location.origin,
+      'openid.return_to': returnUrl,
+      'openid.realm': realm,
       'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
       'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
     });
     
+    console.log(`[AUTH SERVICE] Initiating Steam login with return URL: ${returnUrl}`);
     window.location.href = `https://steamcommunity.com/openid/login?${params}`;
   }
 

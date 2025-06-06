@@ -19,14 +19,19 @@
 ### Required Environment Variables:
 - `VITE_OPENDOTA_API_KEY` = `39cf6bf8-4a26-4c6e-9ba6-bf41c1dab4b6`
 - `VITE_STEAM_API_KEY` = `2CD6D956BC86564BBC1165747A511C38`
-- `VITE_AUTH_MODE` = `development`
+- `VITE_AUTH_MODE` = `development` (for branch deployments) / `steam` (for production only)
 - `VITE_CACHE_TTL` = `300000`
 
-### Optional Environment Variables:
+### Optional Environment Variables (Production Only):
 - `VITE_OPENDOTA_API_URL` = `https://api.opendota.com/api`
 - `VITE_STEAM_API_URL` = `https://api.steampowered.com`
-- `VITE_STEAM_RETURN_URL` = `https://your-vercel-url.vercel.app/auth/steam/callback`
-- `VITE_STEAM_REALM` = `https://your-vercel-url.vercel.app`
+- `VITE_STEAM_RETURN_URL` = `https://your-production-url.vercel.app/auth/steam/callback`
+- `VITE_STEAM_REALM` = `https://your-production-url.vercel.app`
+
+### Branch Deployment Strategy:
+- **Production**: Set `VITE_AUTH_MODE=steam` with Steam OAuth URLs configured
+- **Preview/Branches**: Set `VITE_AUTH_MODE=development` (no Steam URLs needed)
+- **Auto-Detection**: If Steam URLs aren't set, the app automatically uses the current deployment URL
 
 ## Steps to Add Environment Variables in Vercel:
 
@@ -61,6 +66,12 @@ After deployment, test:
 Your app will be available at:
 - Production: `https://your-project-name.vercel.app`
 - Preview: `https://your-project-name-git-branch.vercel.app`
+
+### Branch Deployment Isolation:
+- Each branch deployment now works independently
+- Steam OAuth automatically uses the correct branch URL
+- No cross-branch authentication issues
+- Development mode as fallback for preview deployments
 
 ## Important Notes
 
