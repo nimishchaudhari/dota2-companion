@@ -25,8 +25,13 @@
 ### Optional Environment Variables:
 - `VITE_OPENDOTA_API_URL` = `https://api.opendota.com/api`
 - `VITE_STEAM_API_URL` = `https://api.steampowered.com`
-- `VITE_STEAM_RETURN_URL` = `https://your-vercel-url.vercel.app/auth/steam/callback`
-- `VITE_STEAM_REALM` = `https://your-vercel-url.vercel.app`
+
+### Steam OAuth Configuration (Production Only):
+For production deployments using Steam authentication, set:
+- `VITE_STEAM_RETURN_URL` = `https://your-production-url.vercel.app/auth/steam/callback`
+- `VITE_STEAM_REALM` = `https://your-production-url.vercel.app`
+
+**Note**: Branch/preview deployments automatically use development mode with dynamic URL detection to prevent cross-branch authentication issues.
 
 ## Steps to Add Environment Variables in Vercel:
 
@@ -62,12 +67,23 @@ Your app will be available at:
 - Production: `https://your-project-name.vercel.app`
 - Preview: `https://your-project-name-git-branch.vercel.app`
 
+## Branch Deployment Isolation
+
+**Fixed**: Branch deployments now properly isolate authentication and show correct branch code:
+
+- **Production**: Uses configured Steam OAuth URLs for full authentication
+- **Preview/Branch**: Auto-detects deployment URLs and uses development mode
+- **Local Development**: Uses `localhost` URLs automatically
+
+Each branch deployment is now independent and won't redirect to master branch code.
+
 ## Important Notes
 
 - **Bundle Size**: ~2.8MB (normal for Ant Design + assets)
 - **API Rate Limits**: 60,000 requests/hour with API key
 - **Asset Loading**: All Dota 2 assets are local (no CDN dependencies)
-- **Authentication**: Development mode (direct Account ID input)
+- **Authentication**: Development mode (direct Account ID input) for branches
+- **Branch Isolation**: Each deployment uses its own URL context for OAuth
 
 ## Troubleshooting
 
