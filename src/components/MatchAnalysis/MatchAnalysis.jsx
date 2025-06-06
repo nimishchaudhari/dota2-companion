@@ -1068,15 +1068,25 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
 };
 
 // Laning Phase Analysis Tab
-const LaningPhaseTab = ({ playerData }) => {
-  // Extract laning data (first 10 minutes)
+const LaningPhaseTab = ({ playerData, analysisData }) => {
+  // Extract laning data (first 10 minutes) - USE REAL DATA ONLY
   const laningData = useMemo(() => {
     if (!playerData) return { csData: [], xpData: [] };
+    
+    // Use comprehensive laning analysis from service if available
+    if (analysisData?.laning) {
+      return {
+        csData: analysisData.laning.csData || [],
+        xpData: analysisData.laning.xpData || [],
+        laningScore: analysisData.laning.score,
+        efficiency: analysisData.laning.efficiency
+      };
+    }
     
     const csData = [];
     const xpData = [];
     
-    // Generate CS/XP data for first 10 minutes
+    // Use real OpenDota time-series data only - no fallback estimation
     if (playerData.lh_t && playerData.xp_t && playerData.lh_t.length > 0) {
       for (let i = 0; i < Math.min(10, playerData.lh_t.length); i++) {
         csData.push({
@@ -1089,46 +1099,41 @@ const LaningPhaseTab = ({ playerData }) => {
           value: playerData.xp_t[i] || 0
         });
       }
-    } else {
-      // Fallback: Generate estimated data from final stats
-      const finalCS = playerData.last_hits || 0;
-      const finalXP = (playerData.xp_per_min || 0) * ((playerData.duration || 1800) / 60);
-      
-      for (let i = 1; i <= 10; i++) {
-        // Estimate progressive farm
-        const progressRatio = i / 10;
-        const csValue = Math.floor(finalCS * progressRatio * 0.6); // 60% of farm in first 10min
-        const xpValue = Math.floor(finalXP * progressRatio * 0.4); // 40% of XP in first 10min
-        
-        csData.push({
-          time: i,
-          value: csValue,
-          denies: Math.floor(csValue * 0.1) // Estimate denies
-        });
-        xpData.push({
-          time: i,
-          value: xpValue
-        });
-      }
     }
+    // If no time-series data available, return empty arrays (no mock estimation)
     
     return { csData, xpData };
-  }, [playerData]);
+  }, [playerData, analysisData]);
   
-  // Calculate lane outcome
+  // Calculate lane outcome using analysis data or real OpenDota data
   const laneOutcome = useMemo(() => {
     if (!playerData) return { outcome: 'UNKNOWN', color: 'gray', description: 'No data available' };
     
-    const lastHitsAt10 = playerData.lh_t?.[9] || 0;
-    const xpAt10 = playerData.xp_t?.[9] || 0;
-    const deathsInLane = playerData.life_state?.slice(0, 600).filter(s => s === 2).length || 0;
+    // Use comprehensive laning analysis if available
+    if (analysisData?.laning?.outcome) {
+      return analysisData.laning.outcome;
+    }
+    
+    // Only calculate if we have real time-series data
+    if (!playerData.lh_t || !playerData.xp_t) {
+      return { outcome: 'NO DATA', color: 'gray', description: 'Laning phase data not available' };
+    }
+    
+    const lastHitsAt10 = playerData.lh_t[9] || 0;
+    const xpAt10 = playerData.xp_t[9] || 0;
+    const deathsInLane = playerData.life_state?.slice(0, 600)?.filter(s => s === 2)?.length || 0;
+    
+    // Use role-based benchmarks if available
+    const roleMetrics = analysisData?.role?.metrics;
+    const csThreshold = roleMetrics?.lhThreshold || 35; // default fallback
+    const xpThreshold = roleMetrics?.xpThreshold || 3000; // default fallback
     
     let score = 0;
-    if (lastHitsAt10 > 50) score += 2;
-    else if (lastHitsAt10 > 35) score += 1;
+    if (lastHitsAt10 > csThreshold * 1.4) score += 2;
+    else if (lastHitsAt10 > csThreshold) score += 1;
     
-    if (xpAt10 > 4000) score += 2;
-    else if (xpAt10 > 3000) score += 1;
+    if (xpAt10 > xpThreshold * 1.3) score += 2;
+    else if (xpAt10 > xpThreshold) score += 1;
     
     if (deathsInLane === 0) score += 2;
     else if (deathsInLane === 1) score += 1;
@@ -1137,7 +1142,7 @@ const LaningPhaseTab = ({ playerData }) => {
     if (score >= 5) return { outcome: 'WON', color: 'green', description: 'Dominated the lane' };
     if (score >= 2) return { outcome: 'DRAW', color: 'blue', description: 'Even lane' };
     return { outcome: 'LOST', color: 'red', description: 'Struggled in lane' };
-  }, [playerData]);
+  }, [playerData, analysisData]);
   
   if (!playerData) {
     return <Alert message="Player data not found in this match" type="warning" />;
@@ -1211,22 +1216,22 @@ const LaningPhaseTab = ({ playerData }) => {
               <Col span={8}>
                 <Statistic
                   title="CS @ 10 min"
-                  value={laningData.csData.length > 9 ? laningData.csData[9].value : (playerData.lh_t?.[9] || Math.floor((playerData.last_hits || 0) * 0.6))}
-                  suffix={`/ ${laningData.csData.length > 9 ? laningData.csData[9].denies : (playerData.dn_t?.[9] || 0)} denies`}
+                  value={laningData.csData.length > 9 ? laningData.csData[9].value : (playerData.lh_t?.[9] || '—')}
+                  suffix={laningData.csData.length > 9 ? `/ ${laningData.csData[9].denies} denies` : (playerData.dn_t?.[9] ? `/ ${playerData.dn_t[9]} denies` : '')}
                   valueStyle={{ color: gamingColors.electric.cyan }}
                 />
               </Col>
               <Col span={8}>
                 <Statistic
                   title="XP @ 10 min"
-                  value={laningData.xpData.length > 9 ? laningData.xpData[9].value : (playerData.xp_t?.[9] || Math.floor(((playerData.xp_per_min || 0) * 10)))}
+                  value={laningData.xpData.length > 9 ? laningData.xpData[9].value : (playerData.xp_t?.[9] || '—')}
                   valueStyle={{ color: gamingColors.electric.purple }}
                 />
               </Col>
               <Col span={8}>
                 <Statistic
                   title="Lane Deaths"
-                  value={playerData.life_state?.slice(0, 600)?.filter(s => s === 2)?.length || Math.min(2, playerData.deaths || 0)}
+                  value={playerData.life_state?.slice(0, 600)?.filter(s => s === 2)?.length || (playerData.lh_t && playerData.xp_t ? 0 : '—')}
                   valueStyle={{ color: gamingColors.electric.red }}
                 />
               </Col>
@@ -1648,7 +1653,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
                   {playerData.buyback_count || 0}
                 </div>
                 <Text type="secondary" className="text-xs">
-                  -{(playerData.buyback_count || 0) * Math.floor(playerData.net_worth * 0.25)} gold
+                  {(playerData.buyback_count || 0) > 0 ? 'Cost from match data' : 'No buybacks'}
                 </Text>
               </div>
             </Col>
@@ -2067,7 +2072,7 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
 };
 
 // Vision & Map Control Tab Component
-const VisionMapControlTab = ({ matchData, playerData }) => {
+const VisionMapControlTab = ({ matchData, playerData, analysisData }) => {
   // Enhanced vision statistics with advanced calculations
   const visionStats = useMemo(() => {
     if (!playerData) {
@@ -2121,35 +2126,40 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
     
     const timeline = [];
     
-    // Extract ward placement data from logs
+    // Use vision analysis from service if available
+    if (analysisData?.vision?.wardPlacements) {
+      return analysisData.vision.wardPlacements;
+    }
+    
+    // Extract real ward placement data from logs only (no fallback positions)
     if (playerData.obs_log) {
-      playerData.obs_log.forEach((ward, index) => {
-        if (!ward) return; // Guard against null/undefined ward objects
+      playerData.obs_log.forEach((ward) => {
+        if (!ward || typeof ward.time === 'undefined' || typeof ward.x === 'undefined' || typeof ward.y === 'undefined') return;
         timeline.push({
-          time: ward.time || (index * 300), // fallback timing
+          time: ward.time,
           type: 'observer',
-          x: ward.x || (50 + (index % 5) * 30), // consistent fallback positions
-          y: ward.y || (50 + (index % 3) * 50),
-          efficiency: ward.efficiency || 75 // consistent fallback efficiency
+          x: ward.x,
+          y: ward.y,
+          efficiency: ward.efficiency || null
         });
       });
     }
     
     if (playerData.sen_log) {
-      playerData.sen_log.forEach((ward, index) => {
-        if (!ward) return; // Guard against null/undefined ward objects
+      playerData.sen_log.forEach((ward) => {
+        if (!ward || typeof ward.time === 'undefined' || typeof ward.x === 'undefined' || typeof ward.y === 'undefined') return;
         timeline.push({
-          time: ward.time || (index * 240),
+          time: ward.time,
           type: 'sentry',
-          x: ward.x || (60 + (index % 4) * 35), // consistent fallback positions
-          y: ward.y || (40 + (index % 4) * 40),
+          x: ward.x,
+          y: ward.y,
           dewarded: ward.dewarded || false
         });
       });
     }
     
     return timeline.sort((a, b) => a.time - b.time);
-  }, [playerData]);
+  }, [playerData, analysisData]);
 
   // Calculate map control metrics
   const mapControl = useMemo(() => {
@@ -2452,159 +2462,59 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
 };
 
 // Enhanced Improvement Insights Tab Component
-const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading }) => {
+const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading, analysisData }) => {
   
-  // Advanced insights generation with detailed analysis
+  // Use comprehensive insights from analysis service instead of hardcoded thresholds  
   const insights = useMemo(() => {
+    // Use insights from comprehensive analysis service if available
+    if (analysisData?.insights) {
+      return {
+        tips: analysisData.insights.tips || [],
+        gameImpact: analysisData.insights.gameImpact || [],
+        mistakes: analysisData.insights.mistakes || [],
+        strengths: analysisData.insights.strengths || []
+      };
+    }
+    
+    // Return empty insights if no analysis data available (no hardcoded analysis)
     if (!playerData || !matchData) {
       return { tips: [], gameImpact: [], mistakes: [], strengths: [] };
     }
-    const tips = [];
-    const gameImpact = [];
-    const mistakes = [];
-    const strengths = [];
     
-    // Death analysis
-    if (playerData.deaths > 8) {
-      mistakes.push({
-        type: 'error',
-        icon: <AlertOutlined />,
-        title: 'High Death Count',
-        description: `${playerData.deaths} deaths is above optimal. Focus on positioning and map awareness.`,
-        priority: 'critical',
-        improvement: 'Practice safe positioning and always check minimap before moving.',
-        impact: 'High MMR Loss Risk'
-      });
-    } else if (playerData.deaths <= 3) {
-      strengths.push({
-        type: 'success',
-        title: 'Excellent Survival',
-        description: 'Low death count shows great positioning and game sense.',
-        impact: 'game_winning'
-      });
-    }
-    
-    // Farming analysis
-    const csPerMin = playerData.last_hits / Math.max(1, (matchData.duration / 60));
-    if (csPerMin < 5) {
-      mistakes.push({
-        type: 'warning',
-        icon: <RocketOutlined />,
-        title: 'Farming Efficiency',
-        description: `${csPerMin.toFixed(1)} CS/min is below recommended.`,
-        priority: 'high',
-        improvement: 'Practice last-hitting in demo mode. Aim for 6+ CS/min.',
-        impact: 'Economic Disadvantage'
-      });
-    } else if (csPerMin > 8) {
-      strengths.push({
-        type: 'success',
-        title: 'Superior Farming',
-        description: 'Excellent CS efficiency creates economic advantage.',
-        impact: 'high'
-      });
-    }
-    
-    // Vision analysis
-    if (playerData.obs_placed < 2) {
-      tips.push({
-        type: 'info',
-        icon: <EyeOutlined />,
-        title: 'Vision Contribution',
-        description: 'Low ward count. Consider helping with team vision.',
-        priority: 'medium',
-        improvement: 'Buy 1-2 observer wards during mid-game rotations.'
-      });
-    }
-    
-    // Item timing analysis
-    const hasLateGameItems = playerData.purchase_log?.some(item => 
-      ['black_king_bar', 'aghanims_scepter', 'butterfly', 'assault'].includes(item.key)
-    );
-    
-    if (!hasLateGameItems && matchData.duration > 2000) {
-      mistakes.push({
-        type: 'warning',
-        icon: <ShoppingOutlined />,
-        title: 'Item Progression',
-        description: 'Missing key late-game items for extended match.',
-        priority: 'medium',
-        improvement: 'Prioritize game-changing items in long matches.',
-        impact: 'Power Spike Missed'
-      });
-    }
-    
-    // Team fight analysis
-    if (playerData.teamfight_participation > 0.8) {
-      strengths.push({
-        type: 'success',
-        title: 'Team Fight Presence',
-        description: 'Excellent participation in team engagements.',
-        impact: 'game_winning'
-      });
-    }
-    
-    // Damage analysis
-    if (playerData.hero_damage > 30000) {
-      strengths.push({
-        type: 'success',
-        title: 'High Impact Damage',
-        description: 'Significant damage contribution to team fights.',
-        impact: 'high'
-      });
-    }
-    
-    return { tips, gameImpact, mistakes, strengths };
-  }, [playerData, matchData]);
+    return { tips: [], gameImpact: [], mistakes: [], strengths: [] };
+  }, [playerData, matchData, analysisData]);
 
-  // Performance improvement score
+  // Performance improvement score using analysis data
   const improvementScore = useMemo(() => {
-    let score = 75; // base score
+    // Use improvement score from analysis service if available
+    if (analysisData?.insights?.improvementScore) {
+      return analysisData.insights.improvementScore;
+    }
     
-    // Adjust based on mistakes and strengths
-    score -= insights.mistakes.length * 10;
-    score += insights.strengths.length * 15;
+    // Calculate based on insights if available
+    if (insights.mistakes.length > 0 || insights.strengths.length > 0) {
+      let score = 75; // base score
+      score -= insights.mistakes.length * 10;
+      score += insights.strengths.length * 15;
+      return Math.max(0, Math.min(100, score));
+    }
     
-    return Math.max(0, Math.min(100, score));
-  }, [insights]);
+    // Return null if no data available
+    return null;
+  }, [insights, analysisData]);
 
-  // Generate actionable coaching points
+  // Generate actionable coaching points using analysis service
   const coachingPoints = useMemo(() => {
+    // Use coaching insights from comprehensive analysis service if available
+    if (analysisData?.insights?.coachingPoints) {
+      return analysisData.insights.coachingPoints;
+    }
+    
+    // If no analysis data available, return empty array (no hardcoded coaching)
     if (!playerData || !matchData) return [];
     
-    const points = [];
-    
-    // Role-specific coaching
-    const csPerMin = playerData.last_hits / Math.max(1, (matchData.duration / 60));
-    if (csPerMin < 6) {
-      points.push({
-        category: 'Farming',
-        suggestion: 'Spend 10 minutes daily in demo mode practicing last-hits',
-        impact: 'Medium',
-        timeframe: '1 week'
-      });
-    }
-    
-    if (playerData.deaths > 5) {
-      points.push({
-        category: 'Positioning',
-        suggestion: 'Watch replay focusing on death moments - identify positioning errors',
-        impact: 'High', 
-        timeframe: 'Next game'
-      });
-    }
-    
-    if (playerData.obs_placed < 3) {
-      points.push({
-        category: 'Vision',
-        suggestion: 'Set reminder to buy wards during each shop visit',
-        impact: 'Medium',
-        timeframe: 'Immediate'
-      });
-    }
-    
-    return points;
-  }, [playerData, matchData]);
+    return []; // Return empty if no service data available - no mock coaching
+  }, [analysisData, playerData, matchData]);
   
   // Show loading state for insights calculation
   if (analysisLoading) {
