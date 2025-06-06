@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Dota 2 Logo Component
+const Dota2Logo = ({ className = "w-6 h-6", size }) => {
+  const logoStyle = size ? { width: size, height: size } : {};
+  return (
+    <img 
+      src="/dota2-logo.png" 
+      alt="Dota 2 Logo" 
+      className={className}
+      style={logoStyle}
+    />
+  );
+};
 import { 
   ConfigProvider, 
   App as AntApp, 
@@ -360,9 +373,9 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center"
+            className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center p-1"
           >
-            <Shield className="w-6 h-6 text-white" />
+            <Dota2Logo className="w-8 h-8" />
           </motion.div>
           <h1 className="text-xl font-bold text-white">Dota 2 Command Center</h1>
         </div>
@@ -564,9 +577,9 @@ const LoginPage = () => {
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
+            className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl p-2"
           >
-            <Shield className="w-12 h-12 text-white" />
+            <Dota2Logo className="w-16 h-16" />
           </motion.div>
           
           <h1 className="text-4xl font-bold text-white mb-2">
@@ -935,9 +948,9 @@ const CommandCenterDashboard = () => {
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="w-12 h-12 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-lg flex items-center justify-center relative"
+                  className="w-12 h-12 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-lg flex items-center justify-center relative p-1"
                 >
-                  <Shield className="w-8 h-8 text-white" />
+                  <Dota2Logo className="w-10 h-10" />
                   <div className="absolute inset-0 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-lg opacity-30 animate-pulse"></div>
                 </motion.div>
                 <div>
@@ -1430,9 +1443,9 @@ const LoadingScreen = () => {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
+          className="w-16 h-16 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl p-2"
         >
-          <Shield className="w-10 h-10 text-white" />
+          <Dota2Logo className="w-12 h-12" />
         </motion.div>
         <h2 className="command-header text-xl mb-2">LOADING DOTA 2 COMMAND CENTER</h2>
         <div className="flex items-center justify-center space-x-1">
@@ -1568,9 +1581,9 @@ const AuthCallbackHandler = () => {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl"
+              className="w-16 h-16 bg-gradient-to-br from-electric-cyan to-electric-blue rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl p-2"
             >
-              <Shield className="w-10 h-10 text-white" />
+              <Dota2Logo className="w-12 h-12" />
             </motion.div>
             <h2 className="command-header text-xl mb-2">PROCESSING AUTHENTICATION</h2>
             <p className="text-electric-cyan/80 text-sm mb-4">Fetching your Steam and Dota 2 data...</p>
