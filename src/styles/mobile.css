@@ -1,0 +1,306 @@
+/* Mobile-specific responsive improvements for Dota 2 Companion */
+
+/* Base mobile optimization */
+@media (max-width: 768px) {
+  /* Prevent horizontal overflow */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  /* Ant Design layout fixes */
+  .ant-layout-header {
+    position: sticky !important;
+    top: 0;
+    z-index: 100;
+    padding: 0 16px !important;
+    height: 64px !important;
+    line-height: 64px !important;
+  }
+  
+  .ant-layout-content {
+    padding: 16px !important;
+    margin: 0 !important;
+  }
+  
+  /* Mobile navigation improvements */
+  .ant-menu-horizontal {
+    line-height: 48px !important;
+  }
+  
+  .ant-menu-item {
+    padding: 0 12px !important;
+  }
+  
+  /* Typography responsive scaling */
+  .command-header {
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+  }
+  
+  .ant-typography h1 {
+    font-size: 24px !important;
+  }
+  
+  .ant-typography h2 {
+    font-size: 20px !important;
+  }
+  
+  .ant-typography h3 {
+    font-size: 18px !important;
+  }
+  
+  .ant-typography h4 {
+    font-size: 16px !important;
+  }
+  
+  /* Widget responsive improvements */
+  .ant-card {
+    margin-bottom: 16px !important;
+  }
+  
+  .ant-card-head {
+    padding: 12px 16px !important;
+    min-height: auto !important;
+  }
+  
+  .ant-card-body {
+    padding: 16px !important;
+  }
+  
+  /* Button responsive scaling */
+  .ant-btn {
+    height: 36px !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+  }
+  
+  .ant-btn-lg {
+    height: 40px !important;
+    padding: 0 16px !important;
+    font-size: 16px !important;
+  }
+  
+  /* Input responsive scaling */
+  .ant-input,
+  .ant-select-selector {
+    height: 36px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Table responsive improvements */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+  
+  .ant-table {
+    min-width: 600px;
+  }
+  
+  .ant-table-thead > tr > th {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+  
+  .ant-table-tbody > tr > td {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Chart responsive improvements */
+  .ant-chart-container {
+    height: 200px !important;
+  }
+  
+  /* Space component improvements */
+  .ant-space {
+    width: 100%;
+  }
+  
+  .ant-space-item {
+    flex: 1;
+  }
+  
+  /* Row and Col responsive */
+  .ant-row {
+    margin: 0 !important;
+  }
+  
+  .ant-col {
+    padding: 0 8px !important;
+  }
+  
+  /* Statistic responsive */
+  .ant-statistic-title {
+    font-size: 11px !important;
+  }
+  
+  .ant-statistic-content {
+    font-size: 18px !important;
+  }
+  
+  /* Progress responsive */
+  .ant-progress-text {
+    font-size: 12px !important;
+  }
+  
+  /* Badge responsive */
+  .ant-badge {
+    font-size: 11px !important;
+  }
+  
+  /* Tag responsive */
+  .ant-tag {
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+  }
+  
+  /* Tooltip responsive */
+  .ant-tooltip {
+    font-size: 12px !important;
+  }
+  
+  /* Modal responsive */
+  .ant-modal {
+    margin: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+  
+  .ant-modal-content {
+    max-height: calc(100vh - 100px) !important;
+  }
+  
+  .ant-modal-body {
+    max-height: calc(100vh - 200px) !important;
+    overflow-y: auto;
+  }
+  
+  /* Drawer responsive */
+  .ant-drawer-content-wrapper {
+    width: 85vw !important;
+    max-width: 300px !important;
+  }
+}
+
+/* Very small screens (phones in portrait) */
+@media (max-width: 480px) {
+  .ant-layout-header {
+    padding: 0 12px !important;
+    height: 56px !important;
+    line-height: 56px !important;
+  }
+  
+  .ant-layout-content {
+    padding: 12px !important;
+  }
+  
+  /* Even smaller typography */
+  .command-header {
+    font-size: 14px !important;
+  }
+  
+  .ant-typography h1 {
+    font-size: 20px !important;
+  }
+  
+  .ant-typography h2 {
+    font-size: 18px !important;
+  }
+  
+  .ant-typography h3 {
+    font-size: 16px !important;
+  }
+  
+  .ant-typography h4 {
+    font-size: 14px !important;
+  }
+  
+  /* Smaller buttons */
+  .ant-btn {
+    height: 32px !important;
+    padding: 0 8px !important;
+    font-size: 12px !important;
+  }
+  
+  .ant-btn-lg {
+    height: 36px !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Smaller inputs */
+  .ant-input,
+  .ant-select-selector {
+    height: 32px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Hide non-essential elements */
+  .hide-on-small-mobile {
+    display: none !important;
+  }
+  
+  /* Chart even smaller */
+  .ant-chart-container {
+    height: 150px !important;
+  }
+  
+  /* Very compact table */
+  .ant-table-thead > tr > th {
+    padding: 4px !important;
+    font-size: 10px !important;
+  }
+  
+  .ant-table-tbody > tr > td {
+    padding: 4px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Landscape orientation fixes */
+@media (max-width: 768px) and (orientation: landscape) {
+  .ant-layout-header {
+    height: 48px !important;
+    line-height: 48px !important;
+  }
+  
+  .ant-layout-content {
+    padding: 8px !important;
+  }
+  
+  .ant-card-head {
+    padding: 8px 12px !important;
+  }
+  
+  .ant-card-body {
+    padding: 12px !important;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  .ant-btn,
+  .ant-menu-item,
+  .ant-card,
+  .clickable {
+    touch-action: manipulation;
+  }
+  
+  /* Larger touch targets */
+  .ant-btn {
+    min-height: 44px !important;
+  }
+  
+  .ant-menu-item {
+    min-height: 44px !important;
+    line-height: 44px !important;
+  }
+  
+  /* Remove hover effects on touch devices */
+  .ant-btn:hover,
+  .ant-menu-item:hover,
+  .ant-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}

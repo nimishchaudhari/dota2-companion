@@ -50,7 +50,7 @@ export const getHeroIcon = (heroName, animated = false) => {
       const fallbackPath = `/assets/heroes/icons/default.png`;
       debugLog(`Using fallback hero asset URL: ${fallbackPath}`);
       return fallbackPath;
-    } catch (fallbackError) {
+    } catch (FALLBACK_ERROR) {
       console.warn(`[ASSET WARNING] Failed to generate hero asset URL for "${heroName}":`, error);
       return '';
     }
@@ -77,7 +77,7 @@ export const getAbilityIcon = (abilityName) => {
       const fallbackPath = `/assets/abilities/ability_default.webp`;
       debugLog(`Using fallback ability asset URL: ${fallbackPath}`);
       return fallbackPath;
-    } catch (fallbackError) {
+    } catch (FALLBACK_ERROR) {
       console.warn(`[ASSET WARNING] Failed to generate ability asset URL for "${abilityName}":`, error);
       return '';
     }
@@ -105,7 +105,7 @@ export const getItemIcon = (itemName, format = 'webp') => {
       const fallbackPath = `/assets/items/item_default.${format}`;
       debugLog(`Using fallback item asset URL: ${fallbackPath}`);
       return fallbackPath;
-    } catch (fallbackError) {
+    } catch (FALLBACK_ERROR) {
       console.warn(`[ASSET WARNING] Failed to generate item asset URL for "${itemName}":`, error);
       return '';
     }

@@ -37,6 +37,34 @@ body {
   overflow-x: hidden;
 }
 
+/* Mobile layout fixes */
+@media (max-width: 768px) {
+  body {
+    min-width: 280px;
+  }
+  
+  /* Prevent horizontal scroll on mobile */
+  * {
+    max-width: 100%;
+    word-wrap: break-word;
+  }
+  
+  /* Fix mobile menu overlay issues */
+  .ant-layout {
+    position: relative;
+  }
+  
+  .ant-layout-content {
+    min-height: calc(100vh - 64px);
+    transition: margin-top 0.3s ease;
+  }
+  
+  /* When mobile menu is open, push content down */
+  .mobile-menu-open .ant-layout-content {
+    margin-top: 200px;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
