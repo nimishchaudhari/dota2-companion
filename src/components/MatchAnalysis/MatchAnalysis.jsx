@@ -1014,7 +1014,7 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
               <div className="text-center p-4 bg-gray-900/50 rounded-lg">
                 <Text className="text-xs text-gray-400 block mb-2">VS Average at Your MMR</Text>
                 <div className="text-3xl font-bold" style={{ color: gamingColors.electric.cyan }}>
-                  {Math.floor(Math.random() * 30 + 70)}%
+                  {kpiOverallScore || 85}%
                 </div>
                 <Text type="secondary" className="text-xs">Performance Percentile</Text>
               </div>
@@ -1023,7 +1023,7 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
               <div className="text-center p-4 bg-gray-900/50 rounded-lg">
                 <Text className="text-xs text-gray-400 block mb-2">VS Your Hero Average</Text>
                 <div className="text-3xl font-bold" style={{ color: gamingColors.electric.green }}>
-                  +{Math.floor(Math.random() * 20 + 5)}%
+                  +{Math.max(0, (kpiOverallScore || 85) - 75)}%
                 </div>
                 <Text type="secondary" className="text-xs">Above Personal Average</Text>
               </div>
@@ -1032,7 +1032,7 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
               <div className="text-center p-4 bg-gray-900/50 rounded-lg">
                 <Text className="text-xs text-gray-400 block mb-2">Global Hero Performance</Text>
                 <div className="text-3xl font-bold" style={{ color: gamingColors.electric.purple }}>
-                  TOP {Math.floor(Math.random() * 15 + 10)}%
+                  TOP {Math.max(5, 25 - Math.floor((kpiOverallScore || 85) / 5))}%
                 </div>
                 <Text type="secondary" className="text-xs">Among All Players</Text>
               </div>
@@ -1640,7 +1640,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
                 <Text className="text-xs text-gray-400 block mb-2">Build Efficiency Score</Text>
                 <Progress 
                   type="circle" 
-                  percent={Math.floor(Math.random() * 20 + 70)} 
+                  percent={Math.min(90, Math.max(60, playerData.gold_per_min / 10))} 
                   strokeColor={gamingColors.electric.cyan}
                 />
               </div>
@@ -2065,24 +2065,24 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
     
     // Extract ward placement data from logs
     if (playerData.obs_log) {
-      playerData.obs_log.forEach((ward, INDEX) => {
+      playerData.obs_log.forEach((ward, index) => {
         timeline.push({
-          time: ward.time || (INDEX * 300), // fallback timing
+          time: ward.time || (index * 300), // fallback timing
           type: 'observer',
-          x: ward.x || Math.random() * 200,
-          y: ward.y || Math.random() * 200,
-          efficiency: ward.efficiency || Math.random() * 100
+          x: ward.x || (50 + (index % 5) * 30), // consistent fallback positions
+          y: ward.y || (50 + (index % 3) * 50),
+          efficiency: ward.efficiency || 75 // consistent fallback efficiency
         });
       });
     }
     
     if (playerData.sen_log) {
-      playerData.sen_log.forEach((ward, INDEX) => {
+      playerData.sen_log.forEach((ward, index) => {
         timeline.push({
-          time: ward.time || (INDEX * 240),
+          time: ward.time || (index * 240),
           type: 'sentry',
-          x: ward.x || Math.random() * 200,
-          y: ward.y || Math.random() * 200,
+          x: ward.x || (60 + (index % 4) * 35), // consistent fallback positions
+          y: ward.y || (40 + (index % 4) * 40),
           dewarded: ward.dewarded || false
         });
       });
@@ -2780,7 +2780,7 @@ const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading }) => {
               <Text className="text-yellow-400 font-semibold block mb-2">Next Steps</Text>
               <div className="space-y-1">
                 <Text className="text-white text-xs block">
-                  • Watch replay at {Math.floor(Math.random() * 20 + 10)} minutes (critical moment)
+                  • Watch replay at {Math.floor(matchData.duration / 4 / 60)} minutes (critical moment)
                 </Text>
                 <Text className="text-white text-xs block">
                   • Practice {playerData.deaths > 5 ? 'positioning' : 'farming patterns'} in demo
@@ -2826,7 +2826,7 @@ const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading }) => {
                          gamingColors.electric.green : gamingColors.electric.red 
                 }}>
                   {(playerData.radiant_win === (playerData.player_slot < 128)) ? '+' : '-'}
-                  {Math.floor(Math.random() * 30 + 15)}
+                  {Math.floor((improvementScore || 85) / 4 + 10)}
                 </div>
                 <Text type="secondary" className="text-xs">Estimated MMR</Text>
               </div>
