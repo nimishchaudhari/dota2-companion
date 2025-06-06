@@ -37,17 +37,22 @@ export const HeroMasteryProgressionWidget = () => {
         const mastery = calculateHeroMastery(hero);
         const streakData = analyzeHeroStreak(recentMatches, hero.hero_id);
         
-        // Enhanced performance calculations
-        const avgGPM = hero.games > 0 ? Math.round((hero.sum_gold_per_min || 0) / hero.games) : 0;
-        const avgXPM = hero.games > 0 ? Math.round((hero.sum_xp_per_min || 0) / hero.games) : 0;
-        const avgCSPerMin = hero.games > 0 ? Math.round(((hero.sum_last_hits || 0) / hero.games) / 10) / 10 : 0;
-        const avgHeroDamage = hero.games > 0 ? Math.round((hero.sum_hero_damage || 0) / hero.games) : 0;
+        // Enhanced performance calculations with proper fallbacks
+        const hasGPMData = hero.sum_gold_per_min != null && hero.sum_gold_per_min > 0;
+        const hasXPMData = hero.sum_xp_per_min != null && hero.sum_xp_per_min > 0;
+        const hasLastHitsData = hero.sum_last_hits != null && hero.sum_last_hits > 0;
+        const hasHeroDamageData = hero.sum_hero_damage != null && hero.sum_hero_damage > 0;
+        
+        const avgGPM = hasGPMData && hero.games > 0 ? Math.round(hero.sum_gold_per_min / hero.games) : null;
+        const avgXPM = hasXPMData && hero.games > 0 ? Math.round(hero.sum_xp_per_min / hero.games) : null;
+        const avgCSPerMin = hasLastHitsData && hero.games > 0 ? Math.round((hero.sum_last_hits / hero.games) / 10) / 10 : null;
+        const avgHeroDamage = hasHeroDamageData && hero.games > 0 ? Math.round(hero.sum_hero_damage / hero.games) : null;
         
         // Performance tier calculation (S, A, B, C, D)
         const getPerformanceTier = () => {
           const winrate = mastery.stats.winrate;
           const kda = mastery.stats.kda;
-          const farmScore = avgGPM > 500 ? 2 : avgGPM > 350 ? 1 : 0;
+          const farmScore = avgGPM && avgGPM > 500 ? 2 : avgGPM && avgGPM > 350 ? 1 : 0;
           const score = (winrate >= 65 ? 2 : winrate >= 55 ? 1 : 0) + 
                        (kda >= 2.5 ? 2 : kda >= 1.5 ? 1 : 0) + farmScore;
           
@@ -333,21 +338,15 @@ const HeroMasteryCard = ({ hero, onClick }) => {
 
         {/* Right: Performance Metrics */}
         <div className="text-right text-xs space-y-1">
-          {hero.performance.avgGPM > 0 && (
-            <div className={`${hero.performance.avgGPM > 500 ? 'text-green-400' : hero.performance.avgGPM > 350 ? 'text-yellow-400' : 'text-gray-400'}`}>
-              {hero.performance.avgGPM} GPM
-            </div>
-          )}
-          {hero.performance.avgXPM > 0 && (
-            <div className={`${hero.performance.avgXPM > 600 ? 'text-green-400' : hero.performance.avgXPM > 450 ? 'text-yellow-400' : 'text-gray-400'}`}>
-              {hero.performance.avgXPM} XPM
-            </div>
-          )}
-          {hero.performance.avgCSPerMin > 0 && (
-            <div className="text-gray-400">
-              {hero.performance.avgCSPerMin}/min CS
-            </div>
-          )}
+          <div className={`${hero.performance.avgGPM && hero.performance.avgGPM > 500 ? 'text-green-400' : hero.performance.avgGPM && hero.performance.avgGPM > 350 ? 'text-yellow-400' : 'text-gray-400'}`}>
+            {hero.performance.avgGPM != null ? `${hero.performance.avgGPM} GPM` : 'data not found'}
+          </div>
+          <div className={`${hero.performance.avgXPM && hero.performance.avgXPM > 600 ? 'text-green-400' : hero.performance.avgXPM && hero.performance.avgXPM > 450 ? 'text-yellow-400' : 'text-gray-400'}`}>
+            {hero.performance.avgXPM != null ? `${hero.performance.avgXPM} XPM` : 'data not found'}
+          </div>
+          <div className="text-gray-400">
+            {hero.performance.avgCSPerMin != null ? `${hero.performance.avgCSPerMin}/min CS` : 'data not found'}
+          </div>
         </div>
       </div>
     </Card>
@@ -362,17 +361,23 @@ const HeroDetailView = ({ hero }) => {
   // Calculate detailed hero stats
   const heroMatches = recentMatches?.filter(match => match.hero_id === hero.hero_id) || [];
   const avgHeroDamage = hero.performance.avgHeroDamage;
-  const avgTowerDamage = hero.games > 0 ? Math.round((hero.sum_tower_damage || 0) / hero.games) : 0;
-  const avgHeroHealing = hero.games > 0 ? Math.round((hero.sum_hero_healing || 0) / hero.games) : 0;
+  const avgTowerDamage = hero.games > 0 && hero.sum_tower_damage != null ? Math.round(hero.sum_tower_damage / hero.games) : null;
+  const avgHeroHealing = hero.games > 0 && hero.sum_hero_healing != null ? Math.round(hero.sum_hero_healing / hero.games) : null;
   
   // Role analysis based on performance patterns
   const getRoleAnalysis = () => {
     const { avgGPM, avgCSPerMin } = hero.performance;
-    if (avgGPM > 500 && avgCSPerMin > 5) {
+    
+    // If no performance data available
+    if (!avgGPM && !avgCSPerMin && !avgHeroDamage && !avgHeroHealing) {
+      return { role: 'Unknown', confidence: 'None', description: 'Insufficient performance data available' };
+    }
+    
+    if (avgGPM && avgCSPerMin && avgGPM > 500 && avgCSPerMin > 5) {
       return { role: 'Core', confidence: 'High', description: 'Strong farming patterns and gold income' };
-    } else if (avgHeroHealing > 1000 || (avgGPM < 350 && hero.mastery.stats.kda > 2.5)) {
+    } else if ((avgHeroHealing && avgHeroHealing > 1000) || (avgGPM && avgGPM < 350 && hero.mastery.stats.kda > 2.5)) {
       return { role: 'Support', confidence: 'High', description: 'High healing/assist focus with lower farm priority' };
-    } else if (avgGPM > 400 && avgHeroDamage > 15000) {
+    } else if (avgGPM && avgHeroDamage && avgGPM > 400 && avgHeroDamage > 15000) {
       return { role: 'Semi-Core', confidence: 'Medium', description: 'Balanced farming and fighting approach' };
     } else {
       return { role: 'Flexible', confidence: 'Low', description: 'Varied playstyle across matches' };
@@ -391,10 +396,12 @@ const HeroDetailView = ({ hero }) => {
       insights.push({ type: 'improvement', text: 'Focus on positioning and death reduction' });
     }
     
-    if (hero.performance.avgGPM > 600) {
+    if (hero.performance.avgGPM && hero.performance.avgGPM > 600) {
       insights.push({ type: 'strength', text: 'Outstanding farming efficiency' });
-    } else if (hero.performance.avgGPM < 300) {
+    } else if (hero.performance.avgGPM && hero.performance.avgGPM < 300) {
       insights.push({ type: 'improvement', text: 'Work on last hitting and farm optimization' });
+    } else if (!hero.performance.avgGPM) {
+      insights.push({ type: 'improvement', text: 'Farm efficiency data not available - focus on consistent farming' });
     }
     
     if (hero.mastery.stats.winrate > 65) {
@@ -436,8 +443,8 @@ const HeroDetailView = ({ hero }) => {
           <div className="text-xs text-gray-400">KDA</div>
         </div>
         <div>
-          <div className={`text-2xl font-bold ${hero.performance.avgGPM > 500 ? 'text-green-400' : 'text-yellow-400'}`}>
-            {hero.performance.avgGPM}
+          <div className={`text-2xl font-bold ${hero.performance.avgGPM && hero.performance.avgGPM > 500 ? 'text-green-400' : hero.performance.avgGPM ? 'text-yellow-400' : 'text-gray-400'}`}>
+            {hero.performance.avgGPM != null ? hero.performance.avgGPM : 'N/A'}
           </div>
           <div className="text-xs text-gray-400">Avg GPM</div>
         </div>
@@ -450,17 +457,17 @@ const HeroDetailView = ({ hero }) => {
           <div className="space-y-2">
             <div className="flex justify-between">
               <Text className="text-gray-300">XPM:</Text>
-              <Text className={`${hero.performance.avgXPM > 600 ? 'text-green-400' : hero.performance.avgXPM > 450 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {hero.performance.avgXPM}
+              <Text className={`${hero.performance.avgXPM && hero.performance.avgXPM > 600 ? 'text-green-400' : hero.performance.avgXPM && hero.performance.avgXPM > 450 ? 'text-yellow-400' : hero.performance.avgXPM ? 'text-red-400' : 'text-gray-400'}`}>
+                {hero.performance.avgXPM != null ? hero.performance.avgXPM : 'data not found'}
               </Text>
             </div>
             <div className="flex justify-between">
               <Text className="text-gray-300">CS/Min:</Text>
-              <Text className="text-white">{hero.performance.avgCSPerMin}</Text>
+              <Text className="text-white">{hero.performance.avgCSPerMin != null ? hero.performance.avgCSPerMin : 'data not found'}</Text>
             </div>
             <div className="flex justify-between">
               <Text className="text-gray-300">Hero Damage:</Text>
-              <Text className="text-white">{avgHeroDamage > 0 ? `${Math.round(avgHeroDamage / 1000)}k` : 'N/A'}</Text>
+              <Text className="text-white">{avgHeroDamage != null ? `${Math.round(avgHeroDamage / 1000)}k` : 'data not found'}</Text>
             </div>
           </div>
         </div>

@@ -82,7 +82,7 @@ export const calculateHeroMastery = (heroStats) => {
   const games = heroStats.games || 0;
   const winrate = games > 0 ? (heroStats.win / games * 100) : 0;
   const kda = games > 0 ? 
-    ((heroStats.sum_kills + heroStats.sum_assists) / Math.max(heroStats.sum_deaths, 1)) / games : 0;
+    ((heroStats.sum_kills + heroStats.sum_assists) / Math.max(heroStats.sum_deaths, 1)) : 0;
 
   // Determine current tier
   let currentTier = 'bronze';
@@ -113,12 +113,13 @@ export const calculateHeroMastery = (heroStats) => {
     nextRequirements = nextTierData.requirements;
     
     // Calculate progress towards next tier (based on the most limiting factor)
-    const gameProgress = Math.min(100, (games / nextRequirements.games) * 100);
-    const winrateProgress = Math.min(100, (winrate / nextRequirements.winrate) * 100);
-    const kdaProgress = Math.min(100, (kda / nextRequirements.kda) * 100);
+    const gameProgress = nextRequirements.games > 0 ? Math.min(100, (games / nextRequirements.games) * 100) : 100;
+    const winrateProgress = nextRequirements.winrate > 0 ? Math.min(100, (winrate / nextRequirements.winrate) * 100) : 100;
+    const kdaProgress = nextRequirements.kda > 0 ? Math.min(100, (kda / nextRequirements.kda) * 100) : 100;
     
     // Progress is the minimum of all requirements
     progress = Math.min(gameProgress, winrateProgress, kdaProgress);
+    progress = isNaN(progress) ? 0 : progress;
     
     meetsRequirements = games >= nextRequirements.games && 
                        winrate >= nextRequirements.winrate && 
@@ -134,8 +135,8 @@ export const calculateHeroMastery = (heroStats) => {
     meetsRequirements,
     stats: {
       games,
-      winrate: Math.round(winrate * 10) / 10,
-      kda: Math.round(kda * 100) / 100
+      winrate: isNaN(winrate) ? 0 : Math.round(winrate * 10) / 10,
+      kda: isNaN(kda) ? 0 : Math.round(kda * 100) / 100
     }
   };
 };
