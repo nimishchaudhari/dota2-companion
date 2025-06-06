@@ -28,6 +28,7 @@ import MMRProgressionWidget from './widgets/MMRProgressionWidget.jsx';
 import HeroPerformanceWidget from './widgets/HeroPerformanceWidget.jsx';
 import RecentMatchesWidget from './widgets/RecentMatchesWidget.jsx';
 import PerformanceMetricsWidget from './widgets/PerformanceMetricsWidget.jsx';
+import HeroMasteryProgressionWidget from './widgets/HeroMasteryProgressionWidget.jsx';
 
 const { Content } = Layout;
 const ResponsiveGridLayout = WidthProvider(Responsive);
@@ -39,6 +40,7 @@ const WIDGET_COMPONENTS = {
   'hero-stats': HeroPerformanceWidget,
   'recent-matches': RecentMatchesWidget,
   'performance-metrics': PerformanceMetricsWidget,
+  'hero-mastery': HeroMasteryProgressionWidget,
 };
 
 // Default dashboard layouts for different breakpoints
@@ -48,28 +50,32 @@ const defaultLayouts = {
     { i: 'mmr-chart', x: 4, y: 0, w: 8, h: 5, minW: 6, minH: 4 },
     { i: 'hero-stats', x: 0, y: 5, w: 6, h: 6, minW: 4, minH: 4 },
     { i: 'recent-matches', x: 6, y: 5, w: 6, h: 6, minW: 4, minH: 4 },
-    { i: 'performance-metrics', x: 0, y: 11, w: 12, h: 4, minW: 8, minH: 3 }
+    { i: 'hero-mastery', x: 0, y: 11, w: 6, h: 8, minW: 4, minH: 6 },
+    { i: 'performance-metrics', x: 6, y: 11, w: 6, h: 8, minW: 4, minH: 6 }
   ],
   md: [
     { i: 'session-tracker', x: 0, y: 0, w: 5, h: 5, minW: 3, minH: 4 },
     { i: 'mmr-chart', x: 5, y: 0, w: 5, h: 5, minW: 5, minH: 4 },
     { i: 'hero-stats', x: 0, y: 5, w: 5, h: 5, minW: 3, minH: 4 },
     { i: 'recent-matches', x: 5, y: 5, w: 5, h: 5, minW: 3, minH: 4 },
-    { i: 'performance-metrics', x: 0, y: 10, w: 10, h: 4, minW: 6, minH: 3 }
+    { i: 'hero-mastery', x: 0, y: 10, w: 5, h: 7, minW: 3, minH: 6 },
+    { i: 'performance-metrics', x: 5, y: 10, w: 5, h: 7, minW: 3, minH: 6 }
   ],
   sm: [
     { i: 'session-tracker', x: 0, y: 0, w: 6, h: 5, minW: 4, minH: 4 },
     { i: 'mmr-chart', x: 0, y: 5, w: 6, h: 5, minW: 4, minH: 4 },
     { i: 'hero-stats', x: 0, y: 10, w: 6, h: 5, minW: 4, minH: 4 },
     { i: 'recent-matches', x: 0, y: 15, w: 6, h: 5, minW: 4, minH: 4 },
-    { i: 'performance-metrics', x: 0, y: 20, w: 6, h: 4, minW: 4, minH: 3 }
+    { i: 'hero-mastery', x: 0, y: 20, w: 6, h: 7, minW: 4, minH: 6 },
+    { i: 'performance-metrics', x: 0, y: 27, w: 6, h: 4, minW: 4, minH: 3 }
   ],
   xs: [
     { i: 'session-tracker', x: 0, y: 0, w: 4, h: 5, minW: 4, minH: 4 },
     { i: 'mmr-chart', x: 0, y: 5, w: 4, h: 5, minW: 4, minH: 4 },
     { i: 'hero-stats', x: 0, y: 10, w: 4, h: 5, minW: 4, minH: 4 },
     { i: 'recent-matches', x: 0, y: 15, w: 4, h: 5, minW: 4, minH: 4 },
-    { i: 'performance-metrics', x: 0, y: 20, w: 4, h: 4, minW: 4, minH: 3 }
+    { i: 'hero-mastery', x: 0, y: 20, w: 4, h: 7, minW: 4, minH: 6 },
+    { i: 'performance-metrics', x: 0, y: 27, w: 4, h: 4, minW: 4, minH: 3 }
   ]
 };
 
@@ -103,7 +109,7 @@ const AntDashboard = ({ onMatchClick }) => {
   
   const [activeWidgets, setActiveWidgets] = useState(() => {
     const saved = localStorage.getItem('dashboard-widgets');
-    return saved ? JSON.parse(saved) : ['session-tracker', 'mmr-chart', 'hero-stats', 'recent-matches', 'performance-metrics'];
+    return saved ? JSON.parse(saved) : ['session-tracker', 'mmr-chart', 'hero-stats', 'recent-matches', 'hero-mastery', 'performance-metrics'];
   });
   
   const [CURRENT_BREAKPOINT, SET_CURRENT_BREAKPOINT] = useState('lg');

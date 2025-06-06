@@ -8,7 +8,8 @@ import {
   TableOutlined,
   HistoryOutlined,
   BarChartOutlined,
-  RadarChartOutlined
+  RadarChartOutlined,
+  TrophyOutlined
 } from '@ant-design/icons';
 import { gamingColors } from '../../theme/antdTheme.js';
 
@@ -60,6 +61,15 @@ export const WIDGET_DEFINITIONS = [
     category: 'core',
     tags: ['statistics', 'metrics', 'overview'],
     preview: '/widget-previews/performance-metrics.png'
+  },
+  {
+    id: 'hero-mastery',
+    title: 'Hero Mastery Progression',
+    description: 'Gamified hero mastery system with tier progression, streaks, and achievements',
+    icon: <TrophyOutlined style={{ fontSize: '32px', color: gamingColors.electric.yellow }} />,
+    category: 'performance',
+    tags: ['mastery', 'achievements', 'progression', 'streaks'],
+    preview: '/widget-previews/hero-mastery.png'
   },
   {
     id: 'role-analytics',
