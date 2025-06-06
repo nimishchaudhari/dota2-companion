@@ -109,7 +109,7 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
     if (matchData && user?.accountId && !analysisLoading) {
       fetchAnalysisData();
     }
-  }, [matchData, user?.accountId, matchId, analysisLoading]);
+  }, [matchData, user?.accountId, matchId]);
 
 
   const playerData = useMemo(() => {
@@ -354,7 +354,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
     
     const getHeroWinRate = (heroId) => {
       const hero = matchData.heroStats.find(h => h.id === heroId);
-      return hero ? (hero.pro_win / hero.pro_pick * 100).toFixed(1) : 50;
+      return hero && hero.pro_pick > 0 ? (hero.pro_win / hero.pro_pick * 100).toFixed(1) : 50;
     };
     
     return {
@@ -680,7 +680,7 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
   const efficiencyMetrics = {
     'Farm Priority vs Actual': {
       expected: role === 'Carry' ? 1 : role === 'Mid' ? 2 : role === 'Offlane' ? 3 : 5,
-      actual: playerData.gold_per_min / (matchData.players.reduce((sum, p) => sum + p.gold_per_min, 0) / 10),
+      actual: playerData.gold_per_min / Math.max(1, (matchData.players.reduce((sum, p) => sum + p.gold_per_min, 0) / 10)),
       rating: 'Good'
     },
     'Movement Efficiency': {
@@ -935,11 +935,11 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
             <div className="flex justify-between">
               <Text>Kill Participation</Text>
               <Text strong className="text-white">
-                {Math.round((playerData.kills + playerData.assists) / Math.max(playerData.team_kills, 1) * 100)}%
+                {Math.round((playerData.kills + playerData.assists) / Math.max(playerData.team_kills || 0, 1) * 100)}%
               </Text>
             </div>
             <Progress 
-              percent={Math.round((playerData.kills + playerData.assists) / Math.max(playerData.team_kills, 1) * 100)}
+              percent={Math.round((playerData.kills + playerData.assists) / Math.max(playerData.team_kills || 0, 1) * 100)}
               strokeColor={gamingColors.electric.cyan}
             />
             
@@ -967,7 +967,7 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
               <Col span={12}>
                 <Statistic
                   title="CS/Min"
-                  value={(playerData.last_hits / (matchData.duration / 60)).toFixed(1)}
+                  value={(playerData.last_hits / Math.max(1, (matchData.duration / 60))).toFixed(1)}
                   valueStyle={{ color: gamingColors.electric.cyan }}
                 />
               </Col>
@@ -1453,7 +1453,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
             <Col span={8}>
               <Statistic
                 title="Team Net Worth %"
-                value={Math.round(playerData.net_worth / matchData.players.filter(p => (p.player_slot < 128) === (playerData.player_slot < 128)).reduce((sum, p) => sum + p.net_worth, 0) * 100)}
+                value={Math.round(playerData.net_worth / Math.max(1, matchData.players.filter(p => (p.player_slot < 128) === (playerData.player_slot < 128)).reduce((sum, p) => sum + p.net_worth, 0)) * 100)}
                 suffix="%"
                 valueStyle={{ color: gamingColors.electric.purple }}
               />
@@ -2032,10 +2032,10 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
     const duration = matchData.duration / 60; // in minutes
     
     // Advanced ward efficiency calculations
-    const wardUptime = Math.min((obs * 7) / duration * 100, 100);
+    const wardUptime = Math.min((obs * 7) / Math.max(1, duration) * 100, 100);
     const dewardEfficiency = sen > 0 ? ((obsKills + senKills) / sen * 100) : 0;
     const visionScore = (obs * 2.5 + sen * 1.5 + obsKills * 3 + senKills * 2);
-    const wardsPerMinute = obs / duration;
+    const wardsPerMinute = obs / Math.max(1, duration);
     const visionDensity = obs > 0 ? (duration / obs) : 0; // minutes between wards
     
     // Vision grade calculation
@@ -2066,6 +2066,7 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
     // Extract ward placement data from logs
     if (playerData.obs_log) {
       playerData.obs_log.forEach((ward, index) => {
+        if (!ward) return; // Guard against null/undefined ward objects
         timeline.push({
           time: ward.time || (index * 300), // fallback timing
           type: 'observer',
@@ -2078,6 +2079,7 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
     
     if (playerData.sen_log) {
       playerData.sen_log.forEach((ward, index) => {
+        if (!ward) return; // Guard against null/undefined ward objects
         timeline.push({
           time: ward.time || (index * 240),
           type: 'sentry',
@@ -2107,7 +2109,7 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
     const neutralKills = playerData.neutral_kills || 0;
     const towerDamage = playerData.tower_damage || 0;
     
-    const jungleControl = (ancientKills + neutralKills) / (matchData.duration / 60);
+    const jungleControl = (ancientKills + neutralKills) / Math.max(1, (matchData.duration / 60));
     const objectiveControl = roshKills + (towerDamage / 5000);
     const mapPresence = (playerData.obs_placed * 2 + playerData.purchase?.tpscroll || 0) / 10;
     
@@ -2230,39 +2232,42 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
         >
           {wardTimeline.length > 0 ? (
             <Timeline>
-              {wardTimeline.slice(0, 8).map((ward, idx) => (
-                <Timeline.Item 
-                  key={idx}
-                  color={ward.type === 'observer' ? 'yellow' : 'purple'}
-                  dot={
-                    <img 
-                      src={getItemIcon(ward.type === 'observer' ? 'ward_observer' : 'ward_sentry')}
-                      alt={ward.type}
-                      className="w-4 h-4"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  }
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <Text className="text-white">
-                        {ward.type === 'observer' ? 'Observer Ward' : 'Sentry Ward'}
-                      </Text>
-                      <Text type="secondary" className="text-xs block">
-                        {Math.floor(ward.time / 60)}:{(ward.time % 60).toString().padStart(2, '0')}
-                      </Text>
-                    </div>
-                    {ward.efficiency && (
-                      <Progress 
-                        percent={ward.efficiency} 
-                        size="small" 
-                        strokeColor={ward.efficiency > 70 ? gamingColors.electric.green : gamingColors.electric.orange}
-                        className="w-20"
+              {wardTimeline.slice(0, 8).map((ward, idx) => {
+                if (!ward) return null; // Guard against null/undefined ward objects
+                return (
+                  <Timeline.Item 
+                    key={idx}
+                    color={ward.type === 'observer' ? 'yellow' : 'purple'}
+                    dot={
+                      <img 
+                        src={getItemIcon(ward.type === 'observer' ? 'ward_observer' : 'ward_sentry')}
+                        alt={ward.type}
+                        className="w-4 h-4"
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
-                    )}
-                  </div>
-                </Timeline.Item>
-              ))}
+                    }
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <Text className="text-white">
+                          {ward.type === 'observer' ? 'Observer Ward' : 'Sentry Ward'}
+                        </Text>
+                        <Text type="secondary" className="text-xs block">
+                          {Math.floor(ward.time / 60)}:{(ward.time % 60).toString().padStart(2, '0')}
+                        </Text>
+                      </div>
+                      {ward.efficiency && (
+                        <Progress 
+                          percent={ward.efficiency} 
+                          size="small" 
+                          strokeColor={ward.efficiency > 70 ? gamingColors.electric.green : gamingColors.electric.orange}
+                          className="w-20"
+                        />
+                      )}
+                    </div>
+                  </Timeline.Item>
+                );
+              })}
             </Timeline>
           ) : (
             <Empty description="No ward placement data available" />
@@ -2422,7 +2427,7 @@ const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading }) => {
     }
     
     // Farming analysis
-    const csPerMin = playerData.last_hits / (matchData.duration / 60);
+    const csPerMin = playerData.last_hits / Math.max(1, (matchData.duration / 60));
     if (csPerMin < 5) {
       mistakes.push({
         type: 'warning',
@@ -2512,7 +2517,7 @@ const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading }) => {
     const points = [];
     
     // Role-specific coaching
-    const csPerMin = playerData.last_hits / (matchData.duration / 60);
+    const csPerMin = playerData.last_hits / Math.max(1, (matchData.duration / 60));
     if (csPerMin < 6) {
       points.push({
         category: 'Farming',
