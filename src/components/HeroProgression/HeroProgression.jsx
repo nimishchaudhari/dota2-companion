@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Typography, Button, Space, Card, Progress, Statistic, Row, Col, Tabs, Empty, Tag, Badge, Table, Tooltip } from 'antd';
-import { ArrowLeftOutlined, TrophyOutlined, FireOutlined, TargetOutlined, ClockCircleOutlined, CrownOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, TrophyOutlined, FireOutlined, ClockCircleOutlined, CrownOutlined, ThunderboltOutlined, AimOutlined } from '@ant-design/icons';
 import { useData } from '../../contexts/DataContext.jsx';
 import { gamingColors } from '../../theme/antdTheme.js';
 import { getHeroIcon, normalizeHeroName } from '../../utils/assetHelpers.js';
@@ -213,7 +213,7 @@ const HeroProgression = ({ onBack }) => {
                   value={heroMasteryData.length > 0 ? 
                     (heroMasteryData.reduce((sum, h) => sum + h.mastery.level, 0) / heroMasteryData.length).toFixed(1) : 0}
                   valueStyle={{ color: gamingColors.electric.yellow }}
-                  prefix={<TargetOutlined />}
+                  prefix={<AimOutlined />}
                 />
               </Card>
             </Col>
