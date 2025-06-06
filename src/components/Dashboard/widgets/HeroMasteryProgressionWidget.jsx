@@ -223,7 +223,7 @@ export const HeroMasteryProgressionWidget = () => {
           <Text 
             type="secondary" 
             className="cursor-pointer hover:text-cyan-400 text-xs"
-            onClick={() => {/* Could expand to show all heroes */}}
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate-to-hero-progression'))}
           >
             View All {heroMasteryData.length} Heroes
           </Text>
@@ -356,8 +356,60 @@ const HeroMasteryCard = ({ hero, onClick }) => {
 
 // Hero Detail View Component
 const HeroDetailView = ({ hero }) => {
+  const { recentMatches } = useData();
   const masteryBadge = getMasteryBadge(hero.mastery.tier);
   const achievementCompletion = calculateAchievementCompletion(hero.achievements);
+  
+  // Calculate detailed hero stats
+  const heroMatches = recentMatches?.filter(match => match.hero_id === hero.hero_id) || [];
+  const avgGPM = hero.games > 0 ? Math.round((hero.sum_gold_per_min || 0) / hero.games) : 0;
+  const avgXPM = hero.games > 0 ? Math.round((hero.sum_xp_per_min || 0) / hero.games) : 0;
+  const avgLastHits = hero.games > 0 ? Math.round((hero.sum_last_hits || 0) / hero.games) : 0;
+  const avgHeroDamage = hero.games > 0 ? Math.round((hero.sum_hero_damage || 0) / hero.games) : 0;
+  const avgTowerDamage = hero.games > 0 ? Math.round((hero.sum_tower_damage || 0) / hero.games) : 0;
+  const avgHeroHealing = hero.games > 0 ? Math.round((hero.sum_hero_healing || 0) / hero.games) : 0;
+  
+  // Calculate role analysis based on performance patterns
+  const getRoleAnalysis = () => {
+    if (avgGPM > 500 && avgLastHits > 200) {
+      return { role: 'Core', confidence: 'High', description: 'Strong farming patterns and gold income' };
+    } else if (avgHeroHealing > 1000 || (avgGPM < 350 && hero.mastery.stats.kda > 2.5)) {
+      return { role: 'Support', confidence: 'High', description: 'High healing/assist focus with lower farm priority' };
+    } else if (avgGPM > 400 && avgHeroDamage > 15000) {
+      return { role: 'Semi-Core', confidence: 'Medium', description: 'Balanced farming and fighting approach' };
+    } else {
+      return { role: 'Flexible', confidence: 'Low', description: 'Varied playstyle across matches' };
+    }
+  };
+  
+  const roleAnalysis = getRoleAnalysis();
+  
+  // Performance insights
+  const getPerformanceInsights = () => {
+    const insights = [];
+    
+    if (hero.mastery.stats.kda > 3.0) {
+      insights.push({ type: 'strength', text: 'Excellent KDA ratio indicates strong game impact' });
+    } else if (hero.mastery.stats.kda < 1.5) {
+      insights.push({ type: 'improvement', text: 'Focus on positioning and death reduction' });
+    }
+    
+    if (avgGPM > 600) {
+      insights.push({ type: 'strength', text: 'Outstanding farming efficiency' });
+    } else if (avgGPM < 300) {
+      insights.push({ type: 'improvement', text: 'Work on last hitting and farm patterns' });
+    }
+    
+    if (hero.mastery.stats.winrate > 65) {
+      insights.push({ type: 'strength', text: 'Dominant win rate shows mastery' });
+    } else if (hero.mastery.stats.winrate < 45) {
+      insights.push({ type: 'improvement', text: 'Consider reviewing builds and gameplay decisions' });
+    }
+    
+    return insights;
+  };
+  
+  const insights = getPerformanceInsights();
   
   return (
     <div className="space-y-6">
@@ -372,7 +424,7 @@ const HeroDetailView = ({ hero }) => {
         </Text>
       </div>
 
-      {/* Stats Grid */}
+      {/* Enhanced Stats Grid */}
       <div className="grid grid-cols-3 gap-4 text-center">
         <div>
           <div className="text-2xl font-bold text-white">{hero.games}</div>
@@ -387,6 +439,66 @@ const HeroDetailView = ({ hero }) => {
           <div className="text-xs text-gray-400">KDA Ratio</div>
         </div>
       </div>
+
+      {/* Detailed Performance Metrics */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3">
+          <Title level={5} className="text-white mb-2">Performance Metrics</Title>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Text className="text-gray-300">Avg GPM:</Text>
+              <Text className={`${avgGPM > 500 ? 'text-green-400' : avgGPM > 350 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {avgGPM}
+              </Text>
+            </div>
+            <div className="flex justify-between">
+              <Text className="text-gray-300">Avg XPM:</Text>
+              <Text className={`${avgXPM > 600 ? 'text-green-400' : avgXPM > 450 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {avgXPM}
+              </Text>
+            </div>
+            <div className="flex justify-between">
+              <Text className="text-gray-300">Avg Last Hits:</Text>
+              <Text className="text-white">{avgLastHits}</Text>
+            </div>
+            <div className="flex justify-between">
+              <Text className="text-gray-300">Hero Damage:</Text>
+              <Text className="text-white">{avgHeroDamage > 0 ? `${Math.round(avgHeroDamage / 1000)}k` : 'N/A'}</Text>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          <Title level={5} className="text-white mb-2">Role Analysis</Title>
+          <div className="p-3 bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <Text strong className="text-white">{roleAnalysis.role}</Text>
+              <Tag color={roleAnalysis.confidence === 'High' ? 'success' : roleAnalysis.confidence === 'Medium' ? 'warning' : 'default'}>
+                {roleAnalysis.confidence}
+              </Tag>
+            </div>
+            <Text className="text-gray-300 text-xs">{roleAnalysis.description}</Text>
+          </div>
+        </div>
+      </div>
+
+      {/* Performance Insights */}
+      {insights.length > 0 && (
+        <div>
+          <Title level={5} className="text-white mb-2">Performance Insights</Title>
+          <div className="space-y-2">
+            {insights.map((insight, index) => (
+              <div key={index} className={`p-3 rounded-lg border-l-4 ${
+                insight.type === 'strength' ? 'bg-green-900/20 border-green-400' : 'bg-yellow-900/20 border-yellow-400'
+              }`}>
+                <Text className={insight.type === 'strength' ? 'text-green-400' : 'text-yellow-400'}>
+                  {insight.type === 'strength' ? '✅' : '💡'} {insight.text}
+                </Text>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Next Requirements */}
       {hero.nextRequirements && !hero.nextRequirements.isMaxTier && (

@@ -88,7 +88,8 @@ export const calculateHeroMastery = (heroStats) => {
   let currentTier = 'bronze';
   const tierKeys = Object.keys(MASTERY_TIERS);
   
-  for (const tierKey of tierKeys.reverse()) { // Start from highest tier
+  // Check tiers from highest to lowest to find the highest tier that meets requirements
+  for (const tierKey of [...tierKeys].reverse()) { // Create copy and reverse to avoid mutation
     const tier = MASTERY_TIERS[tierKey];
     if (games >= tier.requirements.games && 
         winrate >= tier.requirements.winrate && 

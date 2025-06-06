@@ -42,6 +42,7 @@ import {
 import { darkTheme } from './theme/antdTheme.js';
 import MatchAnalysis from './components/MatchAnalysis/MatchAnalysis.jsx';
 import AssetTest from './components/AssetTest.jsx';
+import HeroProgression from './components/HeroProgression/HeroProgression.jsx';
 
 const { Header, Content, Sider } = Layout;
 import { 
@@ -1605,6 +1606,18 @@ const AppContent = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
+  // Listen for hero progression navigation event
+  useEffect(() => {
+    const handleHeroProgressionNavigation = () => {
+      setCurrentPage('hero-progression');
+    };
+
+    window.addEventListener('navigate-to-hero-progression', handleHeroProgressionNavigation);
+    return () => {
+      window.removeEventListener('navigate-to-hero-progression', handleHeroProgressionNavigation);
+    };
+  }, []);
+
   // Show loading screen while checking authentication
   if (isLoading) {
     return <LoadingScreen />;
@@ -1617,6 +1630,10 @@ const AppContent = () => {
 
   const handleBackToDashboard = () => {
     setSelectedMatchId(null);
+    setCurrentPage('dashboard');
+  };
+
+  const handleBackFromHeroProgression = () => {
     setCurrentPage('dashboard');
   };
 
@@ -1633,6 +1650,8 @@ const AppContent = () => {
         ) : (
           <PlayerDashboard onMatchClick={handleMatchClick} />
         );
+      case 'hero-progression':
+        return <HeroProgression onBack={handleBackFromHeroProgression} />;
       case 'matches':
         return <div className="p-6 text-electric-cyan font-header">MATCHES PAGE COMING SOON...</div>;
       case 'heroes':
