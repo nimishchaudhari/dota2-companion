@@ -3,7 +3,7 @@ name: Update Claude OAuth Token
 on:
   schedule:
     - cron: '0 * * * *'
-  workflow_dispatch: # 수동 실행 가능
+  workflow_dispatch: # Manual execution allowed
     inputs:
       force:
         description: 'Force token refresh regardless of expiration'
@@ -31,10 +31,10 @@ jobs:
         echo "Current time: $CURRENT_TIME_MS"
         echo "Token expires at: $EXPIRES_AT"
         
-        # 1시간 임계값으로 갱신 필요 여부 체크
+        # Check if refresh is needed with 1-hour threshold
         THRESHOLD=$((CURRENT_TIME_MS + 3600000))
         
-        # Force 옵션이 활성화된 경우 무조건 갱신
+        # Force refresh if force option is enabled
         if [ "${{ github.event.inputs.force }}" = "true" ]; then
           echo "Force refresh requested"
           echo "TOKEN_VALID=false" >> $GITHUB_OUTPUT
@@ -50,7 +50,7 @@ jobs:
       id: refresh
       if: steps.check-expiration.outputs.TOKEN_VALID == 'false'
       run: |
-        # 토큰 갱신 요청 (curl 사용)
+        # Token refresh request (using curl)
         RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST "$TOKEN_URL" \
           -H "Content-Type: application/json" \
           -d "{
@@ -59,7 +59,7 @@ jobs:
             \"client_id\": \"$CLIENT_ID\"
           }")
         
-        # HTTP 상태 코드와 응답 분리
+        # Separate HTTP status code and response
         HTTP_STATUS=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
         RESPONSE_BODY=$(echo $RESPONSE | sed -e 's/HTTPSTATUS:.*//g')
         
@@ -69,12 +69,12 @@ jobs:
           exit 1
         fi
         
-        # JSON 응답에서 토큰 정보 추출
+        # Extract token information from JSON response
         NEW_ACCESS_TOKEN=$(echo "$RESPONSE_BODY" | jq -r '.access_token')
         NEW_REFRESH_TOKEN=$(echo "$RESPONSE_BODY" | jq -r '.refresh_token // empty')
         EXPIRES_IN=$(echo "$RESPONSE_BODY" | jq -r '.expires_in')
 
-        # 필수 필드 검증
+        # Validate required fields
         if [ -z "$NEW_ACCESS_TOKEN" ] || [ "$NEW_ACCESS_TOKEN" = "null" ]; then
           echo "Error: Failed to extract access token from response"
           exit 1
@@ -87,10 +87,10 @@ jobs:
 
         CURRENT_TIME_MS=$(date +%s000)
 
-        # 새 만료 시간 계산 (현재 시간 + expires_in * 1000)
+        # Calculate new expiration time (current time + expires_in * 1000)
         NEW_EXPIRES_AT=$((CURRENT_TIME_MS + (EXPIRES_IN * 1000)))
         
-        # 새 refresh_token이 없으면 기존 것 유지 (원본 로직과 동일)
+        # Keep existing refresh_token if new one is not provided (same as original logic)
         if [ "$NEW_REFRESH_TOKEN" = "null" ] || [ -z "$NEW_REFRESH_TOKEN" ]; then
           NEW_REFRESH_TOKEN="$REFRESH_TOKEN"
         fi
@@ -98,7 +98,7 @@ jobs:
         echo "Token refreshed successfully"
         echo "New token expires at: $NEW_EXPIRES_AT"
         
-        # GitHub Actions outputs 설정
+        # Set GitHub Actions outputs
         echo "TOKEN_REFRESHED=true" >> $GITHUB_OUTPUT
         echo "::add-mask::$NEW_ACCESS_TOKEN"
         echo "NEW_ACCESS_TOKEN=$NEW_ACCESS_TOKEN" >> $GITHUB_OUTPUT
@@ -112,9 +112,9 @@ jobs:
       run: |
         echo "Updating GitHub secrets..."
         
-        # 토큰 값 검증 후 업데이트
+        # Validate and update token values
         if [ -n "${{ steps.refresh.outputs.NEW_ACCESS_TOKEN }}" ]; then
-          gh secret set CLAUDE_ACCESS_TOKEN --body "${{ steps.refresh.outputs.NEW_ACCESS_TOKEN }}" --org "${{ github.repository_owner }}"
+          gh secret set CLAUDE_ACCESS_TOKEN --body "${{ steps.refresh.outputs.NEW_ACCESS_TOKEN }}" --repo "${{ github.repository }}"
           echo "Access token updated"
         else
           echo "Error: New access token is empty"
@@ -122,7 +122,7 @@ jobs:
         fi
         
         if [ -n "${{ steps.refresh.outputs.NEW_REFRESH_TOKEN }}" ]; then
-          gh secret set CLAUDE_REFRESH_TOKEN --body "${{ steps.refresh.outputs.NEW_REFRESH_TOKEN }}" --org "${{ github.repository_owner }}"
+          gh secret set CLAUDE_REFRESH_TOKEN --body "${{ steps.refresh.outputs.NEW_REFRESH_TOKEN }}" --repo "${{ github.repository }}"
           echo "Refresh token updated"
         else
           echo "Error: New refresh token is empty"
@@ -130,7 +130,7 @@ jobs:
         fi
         
         if [ -n "${{ steps.refresh.outputs.NEW_EXPIRES_AT }}" ]; then
-          gh secret set CLAUDE_EXPIRES_AT --body "${{ steps.refresh.outputs.NEW_EXPIRES_AT }}" --org "${{ github.repository_owner }}"
+          gh secret set CLAUDE_EXPIRES_AT --body "${{ steps.refresh.outputs.NEW_EXPIRES_AT }}" --repo "${{ github.repository }}"
           echo "Expires at updated"
         else
           echo "Error: New expires at is empty"
@@ -139,18 +139,18 @@ jobs:
         
         echo "GitHub secrets updated successfully"
       env:
-        GH_TOKEN: ${{ secrets.ORG_TOKEN }}
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
         
     - name: Log token status
       run: |
         if [ "${{ steps.refresh.outputs.TOKEN_REFRESHED }}" == "true" ]; then
           echo "✅ Token was renewed"
-          # 새 만료 시간을 사람이 읽기 쉬운 형태로 표시
+          # Display new expiration time in human-readable format
           NEW_EXPIRES_SECONDS=$((${{ steps.refresh.outputs.NEW_EXPIRES_AT }} / 1000))
           echo "🕐 New expiration: $(date -d @$NEW_EXPIRES_SECONDS)"
         else
           echo "ℹ️ Token is still valid, no renewal needed"
-          # 현재 만료 시간을 사람이 읽기 쉬운 형태로 표시
+          # Display current expiration time in human-readable format
           CURRENT_EXPIRES_SECONDS=$((${{ secrets.CLAUDE_EXPIRES_AT }} / 1000))
           echo "🕐 Current expiration: $(date -d @$CURRENT_EXPIRES_SECONDS)"
         fi
@@ -159,7 +159,7 @@ jobs:
       if: failure()
       run: |
         echo "❌ Claude OAuth token refresh failed!"
-        # 필요시 Slack 등으로 알림 전송
+        # Send notification via Slack etc. if needed
         # curl -X POST -H 'Content-type: application/json' \
         #   --data '{"text":"Claude OAuth token refresh failed!"}' \
         #   ${{ secrets.SLACK_WEBHOOK_URL }}
