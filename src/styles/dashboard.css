@@ -134,6 +134,57 @@
   .dashboard-widget {
     margin-bottom: 16px;
   }
+  
+  /* Disable grid layout on mobile */
+  .react-grid-layout {
+    position: static !important;
+    transform: none !important;
+  }
+  
+  .react-grid-item {
+    position: static !important;
+    width: 100% !important;
+    transform: none !important;
+  }
+  
+  /* Mobile-specific adjustments */
+  .ant-layout-header {
+    padding: 0 16px !important;
+  }
+  
+  .ant-layout-content {
+    margin: 0 !important;
+    padding: 16px !important;
+  }
+  
+  /* Ensure mobile menu doesn't overlap content */
+  .ant-layout-content.mobile-menu-open {
+    margin-top: 200px;
+  }
+}
+
+/* Mobile-first responsive breakpoints */
+@media (max-width: 480px) {
+  .ant-layout-header {
+    padding: 0 12px !important;
+    height: auto !important;
+    min-height: 64px;
+  }
+  
+  .ant-layout-content {
+    padding: 12px !important;
+  }
+  
+  /* Stack header elements vertically on very small screens */
+  .ant-layout-header > div {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  /* Hide less important elements on very small screens */
+  .hidden-on-mobile {
+    display: none !important;
+  }
 }
 
 /* Ant Design component overrides for dashboard */

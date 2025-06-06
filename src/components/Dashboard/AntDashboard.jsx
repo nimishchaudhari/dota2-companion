@@ -90,7 +90,7 @@ const timeRangePresets = [
   { label: 'Last 3 Months', value: [new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), new Date()] }
 ];
 
-const AntDashboard = ({ onMatchClick }) => {
+const AntDashboard = ({ onMatchClick, mobileMenuOpen }) => {
   const { user: USER } = useContext(AuthContext);
   const { loading, recentMatches, winLoss, heroStats, ratings } = useData();
   const { message } = App.useApp();
@@ -256,23 +256,25 @@ const AntDashboard = ({ onMatchClick }) => {
 
   // Dashboard toolbar
   const DashboardToolbar = () => (
-    <div className="bg-gray-900/90 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+    <div className="bg-gray-900/90 backdrop-blur-sm border-b border-gray-700 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <Space size="middle" wrap>
+        <Space size="middle" wrap className="flex-1">
           <Select
             value={dashboardPreset}
             onChange={handlePresetChange}
-            style={{ width: 200 }}
+            style={{ width: window.innerWidth < 768 ? 150 : 200 }}
             options={dashboardPresets}
             prefix={<DashboardOutlined />}
+            className="min-w-0"
           />
           
           <Button 
             type="primary" 
             icon={<PlusOutlined />}
             onClick={() => setShowWidgetLibrary(true)}
+            className="hidden-on-small-mobile"
           >
-            Add Widget
+            {window.innerWidth < 480 ? "Add" : "Add Widget"}
           </Button>
           
           <DatePicker.RangePicker 
@@ -280,26 +282,36 @@ const AntDashboard = ({ onMatchClick }) => {
             value={timeRange}
             onChange={setTimeRange}
             placeholder={['Start Date', 'End Date']}
+            className="hidden sm:block"
+            style={{ minWidth: 0 }}
           />
         </Space>
 
-        <Space size="middle" wrap>
-          <Tooltip title="Filter Data">
+        <Space size="small" wrap>
+          <Tooltip title="Add Widget" className="sm:hidden">
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => setShowWidgetLibrary(true)}
+            />
+          </Tooltip>
+          
+          <Tooltip title="Filter Data" className="hidden sm:inline-block">
             <Button icon={<FilterOutlined />} />
           </Tooltip>
           
-          <Tooltip title="Export Dashboard">
+          <Tooltip title="Export Dashboard" className="hidden md:inline-block">
             <Button icon={<DownloadOutlined />} onClick={handleExportDashboard} />
           </Tooltip>
           
-          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} className="hidden lg:inline-block">
             <Button 
               icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />} 
               onClick={toggleFullscreen}
             />
           </Tooltip>
           
-          <Space.Compact>
+          <Space.Compact className="hidden md:inline-flex">
             <Tooltip title="Save Layout">
               <Button icon={<SaveOutlined />} onClick={handleSaveLayout} />
             </Tooltip>
@@ -328,48 +340,75 @@ const AntDashboard = ({ onMatchClick }) => {
     );
   }
 
+  // Check if we're on mobile
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <Layout className="min-h-screen bg-gray-900">
       <DashboardToolbar />
       
-      <Content className="p-6 overflow-auto">
+      <Content className={`p-4 sm:p-6 overflow-auto ${isMobile && mobileMenuOpen ? 'pt-16' : ''}`}>
         <AnimatePresence>
-          <div 
-            className="h-full"
-          >
-            <ResponsiveGridLayout
-              className="layout dashboard-grid"
-              layouts={layouts}
-              breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-              cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-              rowHeight={60}
-              onLayoutChange={handleLayoutChange}
-              onBreakpointChange={handleBreakpointChange}
-              draggableHandle=".widget-drag-handle"
-              useCSSTransforms={true}
-              compactType="vertical"
-              preventCollision={false}
-              margin={[16, 16]}
-            >
-              {activeWidgetConfigs.map(({ id, component: WidgetComponent, config }) => (
-                <div key={id} className="dashboard-widget">
-                  <WidgetWrapper
-                    id={id}
-                    title={config.title || id}
-                    icon={config.icon}
-                    component={WidgetComponent}
-                    loading={loading.matches || loading.heroes || loading.ratings}
-                    onRefresh={handleWidgetRefresh}
-                    onRemove={handleWidgetRemove}
-                    onFullscreen={handleWidgetFullscreen}
-                    isFullscreen={fullscreenWidget === id}
-                    className={fullscreenWidget === id ? 'z-50' : ''}
-                    timeRange={timeRange}
-                    onMatchClick={id === 'recent-matches' ? onMatchClick : undefined}
-                  />
-                </div>
-              ))}
-            </ResponsiveGridLayout>
+          <div className="h-full">
+            {isMobile ? (
+              // Mobile: Simple vertical stack layout
+              <div className="space-y-4">
+                {activeWidgetConfigs.map(({ id, component: WidgetComponent, config }) => (
+                  <div key={id} className="dashboard-widget w-full">
+                    <WidgetWrapper
+                      id={id}
+                      title={config.title || id}
+                      icon={config.icon}
+                      component={WidgetComponent}
+                      loading={loading.matches || loading.heroes || loading.ratings}
+                      onRefresh={handleWidgetRefresh}
+                      onRemove={handleWidgetRemove}
+                      onFullscreen={handleWidgetFullscreen}
+                      isFullscreen={fullscreenWidget === id}
+                      className={fullscreenWidget === id ? 'z-50' : ''}
+                      timeRange={timeRange}
+                      onMatchClick={id === 'recent-matches' ? onMatchClick : undefined}
+                      isMobile={true}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Desktop: Grid layout
+              <ResponsiveGridLayout
+                className="layout dashboard-grid"
+                layouts={layouts}
+                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+                rowHeight={60}
+                onLayoutChange={handleLayoutChange}
+                onBreakpointChange={handleBreakpointChange}
+                draggableHandle=".widget-drag-handle"
+                useCSSTransforms={true}
+                compactType="vertical"
+                preventCollision={false}
+                margin={[16, 16]}
+              >
+                {activeWidgetConfigs.map(({ id, component: WidgetComponent, config }) => (
+                  <div key={id} className="dashboard-widget">
+                    <WidgetWrapper
+                      id={id}
+                      title={config.title || id}
+                      icon={config.icon}
+                      component={WidgetComponent}
+                      loading={loading.matches || loading.heroes || loading.ratings}
+                      onRefresh={handleWidgetRefresh}
+                      onRemove={handleWidgetRemove}
+                      onFullscreen={handleWidgetFullscreen}
+                      isFullscreen={fullscreenWidget === id}
+                      className={fullscreenWidget === id ? 'z-50' : ''}
+                      timeRange={timeRange}
+                      onMatchClick={id === 'recent-matches' ? onMatchClick : undefined}
+                    />
+                  </div>
+                ))}
+              </ResponsiveGridLayout>
+            )}
 
             {/* Empty state */}
             {activeWidgets.length === 0 && (

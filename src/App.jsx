@@ -67,6 +67,7 @@ import { DataProvider, useData } from './contexts/DataContext.jsx';
 import { AuthContext } from './contexts/AuthContext.js';
 import AntDashboard from './components/Dashboard/AntDashboard.jsx';
 import './styles/dashboard.css';
+import './styles/mobile.css';
 import {
   transformMatches,
   transformHeroStats,
@@ -366,18 +367,21 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
   ];
 
   return (
-    <Header className="bg-gray-900 border-b border-gray-700 px-6 py-0 h-16 flex items-center justify-between">
+    <Header className="bg-gray-900 border-b border-gray-700 px-4 sm:px-6 py-0 h-16 flex items-center justify-between">
       {/* Logo and Brand */}
-      <div className="flex items-center space-x-8">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-4 sm:space-x-8 flex-1 min-w-0">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center p-1"
+            className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center p-1 flex-shrink-0"
           >
-            <Dota2Logo className="w-8 h-8" />
+            <Dota2Logo className="w-6 h-6 sm:w-8 sm:h-8" />
           </motion.div>
-          <h1 className="text-xl font-bold text-white">Dota 2 Command Center</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-white truncate">
+            <span className="hidden sm:inline">Dota 2 Command Center</span>
+            <span className="sm:hidden">Dota 2</span>
+          </h1>
         </div>
         
         {/* Desktop Menu */}
@@ -398,13 +402,14 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
       </div>
 
       {/* User Actions */}
-      <Space size="middle">
+      <Space size="small" className="flex-shrink-0">
         {/* Mobile Menu Button */}
         <Button
           type="text"
           icon={mobileMenuOpen ? <CloseOutlined /> : <MenuOutlined />}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden text-white"
+          className="md:hidden text-white h-10 w-10 flex items-center justify-center"
+          size="large"
         />
         
         {/* Refresh Button */}
@@ -414,7 +419,8 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
             icon={<ReloadOutlined spin={isLoading} />}
             onClick={handleRefresh}
             disabled={isLoading}
-            className="text-gray-400 hover:text-cyan-400"
+            className="text-gray-400 hover:text-cyan-400 hidden sm:flex"
+            size="large"
           />
         </Tooltip>
         
@@ -424,17 +430,17 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
           placement="bottomRight"
           trigger={['click']}
         >
-          <div className="flex items-center space-x-3 bg-gray-800 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors">
+          <div className="flex items-center space-x-2 sm:space-x-3 bg-gray-800 rounded-lg px-2 sm:px-4 py-2 cursor-pointer hover:bg-gray-700 transition-colors">
             <Avatar
-              size={32}
+              size={window.innerWidth < 640 ? 28 : 32}
               icon={<UserOutlined />}
-              className="bg-gradient-to-br from-purple-500 to-pink-600"
+              className="bg-gradient-to-br from-purple-500 to-pink-600 flex-shrink-0"
             />
-            <div className="hidden sm:flex flex-col">
-              <span className="text-sm text-gray-300 font-medium">
+            <div className="hidden sm:flex flex-col min-w-0">
+              <span className="text-sm text-gray-300 font-medium truncate">
                 {user?.personaName || user?.displayName || 'Player'}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 truncate">
                 {user?.authMode === 'development' ? `ID: ${user?.accountId}` : `#${user?.steamId || '12345'}`}
               </span>
             </div>
@@ -444,7 +450,7 @@ const Navigation = ({ currentPage, setCurrentPage, mobileMenuOpen, setMobileMenu
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-gray-900 border-b border-gray-700 z-50">
+        <div className="md:hidden fixed top-16 left-0 right-0 bg-gray-900 border-b border-gray-700 z-50 shadow-lg">
           <Menu
             mode="vertical"
             selectedKeys={[currentPage]}
@@ -1427,8 +1433,8 @@ const CommandCenterDashboard = () => {
 };
 
 // Use AntDashboard as the main dashboard component
-const PlayerDashboard = ({ onMatchClick }) => {
-  return <AntDashboard onMatchClick={onMatchClick} />;
+const PlayerDashboard = ({ onMatchClick, mobileMenuOpen }) => {
+  return <AntDashboard onMatchClick={onMatchClick} mobileMenuOpen={mobileMenuOpen} />;
 };
 
 // Loading Component
@@ -1605,6 +1611,18 @@ const AppContent = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
+  // Close mobile menu when clicking outside or on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [currentPage]);
+
+  // Close mobile menu when clicking on content (for mobile)
+  const handleContentClick = useCallback(() => {
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [mobileMenuOpen, setMobileMenuOpen]);
+
   // Show loading screen while checking authentication
   if (isLoading) {
     return <LoadingScreen />;
@@ -1623,15 +1641,16 @@ const AppContent = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <PlayerDashboard onMatchClick={handleMatchClick} />;
+        return <PlayerDashboard onMatchClick={handleMatchClick} mobileMenuOpen={mobileMenuOpen} />;
       case 'match-analysis':
         return selectedMatchId ? (
           <MatchAnalysis 
             matchId={selectedMatchId} 
-            onBack={handleBackToDashboard} 
+            onBack={handleBackToDashboard}
+            mobileMenuOpen={mobileMenuOpen}
           />
         ) : (
-          <PlayerDashboard onMatchClick={handleMatchClick} />
+          <PlayerDashboard onMatchClick={handleMatchClick} mobileMenuOpen={mobileMenuOpen} />
         );
       case 'matches':
         return <div className="p-6 text-electric-cyan font-header">MATCHES PAGE COMING SOON...</div>;
@@ -1644,7 +1663,7 @@ const AppContent = () => {
       case 'pro':
         return <div className="p-6 text-electric-cyan font-header">PRO SCENE PAGE COMING SOON...</div>;
       default:
-        return <PlayerDashboard onMatchClick={handleMatchClick} />;
+        return <PlayerDashboard onMatchClick={handleMatchClick} mobileMenuOpen={mobileMenuOpen} />;
     }
   };
 
@@ -1654,16 +1673,18 @@ const AppContent = () => {
 
   return (
     <DataProvider>
-      <Layout className="min-h-screen">
+      <Layout className={`min-h-screen ${mobileMenuOpen ? 'mobile-menu-open' : ''}`}>
         <Navigation 
           currentPage={currentPage} 
           setCurrentPage={setCurrentPage}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
         />
-        <AnimatePresence mode="wait">
-          {renderPage()}
-        </AnimatePresence>
+        <div onClick={handleContentClick}>
+          <AnimatePresence mode="wait">
+            {renderPage()}
+          </AnimatePresence>
+        </div>
       </Layout>
     </DataProvider>
   );
