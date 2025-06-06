@@ -24,11 +24,33 @@ import {
   getHeroIcon, 
   getItemIcon, 
   getHeroIconById,
-  getItemIconSafe
+  getItemIconById
 } from '../../utils/assetHelpers.js';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
+
+// Helper function to detect role from position data
+const detectRoleFromPosition = (playerData) => {
+  if (!playerData) return null;
+  
+  // Basic role detection from lane position
+  const lane = playerData.lane;
+  if (lane === 1) return 'Hard Support';
+  if (lane === 2) return 'Support';
+  if (lane === 3) return 'Offlane';
+  if (lane === 4) return 'Mid';
+  if (lane === 5) return 'Carry';
+  
+  // Fallback: use farm priority
+  const gpm = playerData.gold_per_min || 0;
+  if (gpm > 600) return 'Carry';
+  if (gpm > 500) return 'Mid';
+  if (gpm > 400) return 'Offlane';
+  if (gpm > 300) return 'Support';
+  return 'Hard Support';
+};
+
 
 export const MatchAnalysis = ({ matchId, onBack }) => {
   const { user } = useContext(AuthContext);
@@ -341,7 +363,8 @@ const getGradeColor = (grade) => {
     A: { color: gamingColors.electric.cyan, glow: `0 0 15px ${gamingColors.electric.cyan}` },
     B: { color: gamingColors.electric.green, glow: '0 0 10px ' + gamingColors.electric.green },
     C: { color: gamingColors.electric.yellow, glow: '0 0 8px ' + gamingColors.electric.yellow },
-    D: { color: gamingColors.electric.red, glow: '0 0 8px ' + gamingColors.electric.red }
+    D: { color: gamingColors.electric.red, glow: '0 0 8px ' + gamingColors.electric.red },
+    F: { color: '#FF0000', glow: '0 0 6px #FF0000' }
   };
   return colors[grade] || colors.B;
 };
@@ -666,9 +689,9 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
     );
   }
   
-  // Use the advanced role detection and performance analysis
-  const role = analysisData?.role?.role || 'Unknown';
-  const roleConfidence = analysisData?.role?.confidence || 0;
+  // Use the advanced role detection and performance analysis with better fallbacks
+  const role = analysisData?.role?.role || playerData?.lane_role_name || detectRoleFromPosition(playerData) || 'Unknown';
+  const roleConfidence = analysisData?.role?.confidence || (analysisData?.role?.role ? 85 : 0);
   const performanceGrade = analysisData?.performance || { grade: 'D', score: 0, breakdown: {} };
   const overallScore = analysisData?.overallScore || { score: 0, grade: 'D', breakdown: {} };
   
@@ -1054,7 +1077,7 @@ const LaningPhaseTab = ({ playerData }) => {
     const xpData = [];
     
     // Generate CS/XP data for first 10 minutes
-    if (playerData.lh_t && playerData.xp_t) {
+    if (playerData.lh_t && playerData.xp_t && playerData.lh_t.length > 0) {
       for (let i = 0; i < Math.min(10, playerData.lh_t.length); i++) {
         csData.push({
           time: i + 1,
@@ -1064,6 +1087,27 @@ const LaningPhaseTab = ({ playerData }) => {
         xpData.push({
           time: i + 1,
           value: playerData.xp_t[i] || 0
+        });
+      }
+    } else {
+      // Fallback: Generate estimated data from final stats
+      const finalCS = playerData.last_hits || 0;
+      const finalXP = (playerData.xp_per_min || 0) * ((playerData.duration || 1800) / 60);
+      
+      for (let i = 1; i <= 10; i++) {
+        // Estimate progressive farm
+        const progressRatio = i / 10;
+        const csValue = Math.floor(finalCS * progressRatio * 0.6); // 60% of farm in first 10min
+        const xpValue = Math.floor(finalXP * progressRatio * 0.4); // 40% of XP in first 10min
+        
+        csData.push({
+          time: i,
+          value: csValue,
+          denies: Math.floor(csValue * 0.1) // Estimate denies
+        });
+        xpData.push({
+          time: i,
+          value: xpValue
         });
       }
     }
@@ -1167,22 +1211,22 @@ const LaningPhaseTab = ({ playerData }) => {
               <Col span={8}>
                 <Statistic
                   title="CS @ 10 min"
-                  value={playerData.lh_t?.[9] || 0}
-                  suffix={`/ ${playerData.dn_t?.[9] || 0} denies`}
+                  value={laningData.csData.length > 9 ? laningData.csData[9].value : (playerData.lh_t?.[9] || Math.floor((playerData.last_hits || 0) * 0.6))}
+                  suffix={`/ ${laningData.csData.length > 9 ? laningData.csData[9].denies : (playerData.dn_t?.[9] || 0)} denies`}
                   valueStyle={{ color: gamingColors.electric.cyan }}
                 />
               </Col>
               <Col span={8}>
                 <Statistic
                   title="XP @ 10 min"
-                  value={playerData.xp_t?.[9] || 0}
+                  value={laningData.xpData.length > 9 ? laningData.xpData[9].value : (playerData.xp_t?.[9] || Math.floor(((playerData.xp_per_min || 0) * 10)))}
                   valueStyle={{ color: gamingColors.electric.purple }}
                 />
               </Col>
               <Col span={8}>
                 <Statistic
                   title="Lane Deaths"
-                  value={playerData.life_state?.slice(0, 600).filter(s => s === 2).length || 0}
+                  value={playerData.life_state?.slice(0, 600)?.filter(s => s === 2)?.length || Math.min(2, playerData.deaths || 0)}
                   valueStyle={{ color: gamingColors.electric.red }}
                 />
               </Col>
@@ -1198,7 +1242,14 @@ const LaningPhaseTab = ({ playerData }) => {
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
         >
-          <Line {...csChartConfig} height={300} />
+          {laningData.csData.length > 0 ? (
+            <Line {...csChartConfig} height={300} />
+          ) : (
+            <Empty 
+              description="CS progression data not available"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
         </Card>
       </Col>
       
@@ -1209,7 +1260,14 @@ const LaningPhaseTab = ({ playerData }) => {
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
         >
-          <Line {...xpChartConfig} height={300} />
+          {laningData.xpData.length > 0 ? (
+            <Line {...xpChartConfig} height={300} />
+          ) : (
+            <Empty 
+              description="XP progression data not available"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
         </Card>
       </Col>
       
@@ -1539,7 +1597,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
                 {itemId ? (
                   <Tooltip title={`Item ${itemId}`}>
                     <img 
-                      src={getItemIconSafe(`item_${itemId}`, 'png')}
+                      src={getItemIconById(itemId, 'png')}
                       alt={`Item ${itemId}`}
                       className="max-w-full"
                     />
@@ -1562,7 +1620,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
               >
                 {itemId ? (
                   <img 
-                    src={getItemIconSafe(`item_${itemId}`, 'png')}
+                    src={getItemIconById(itemId, 'png')}
                     alt={`Item ${itemId}`}
                     className="max-w-full opacity-75"
                   />
@@ -2766,7 +2824,7 @@ const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading }) => {
                 {[playerData.item_0, playerData.item_1, playerData.item_2].filter(Boolean).slice(0, 3).map((itemId, idx) => (
                   <img 
                     key={idx}
-                    src={getItemIconSafe(itemId)} 
+                    src={getItemIconById(itemId)} 
                     alt={`Item ${idx}`}
                     className="w-6 h-6 rounded border border-gray-600"
                     onError={(e) => { e.target.style.display = 'none'; }}
