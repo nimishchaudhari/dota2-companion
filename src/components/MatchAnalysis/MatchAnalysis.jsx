@@ -51,6 +51,18 @@ const detectRoleFromPosition = (playerData) => {
   return 'Hard Support';
 };
 
+// Helper function to get performance metric explanations
+const getMetricExplanation = (metric) => {
+  const explanations = {
+    'Lane Control': 'Last hits per minute and lane presence in first 10 minutes. Good: 6+ CS/min for cores, 2+ for supports',
+    'Tempo Impact': 'Kill participation and objective contribution. Good: 60-80% for cores, 50-70% for supports',
+    'XP Efficiency': 'Experience gained relative to game time. Good: Level advantage maintained throughout game',
+    'Damage Output': 'Hero and building damage relative to role. Good: 400+ per minute for cores, 200+ for supports',
+    'Farm Priority': 'Net worth relative to expected role position. Good: Top 3 on team for cores',
+    'Vision Control': 'Wards placed and dewarded. Good: 10+ observer wards, 5+ sentry wards for supports'
+  };
+  return explanations[metric] || 'Performance metric based on role expectations and game impact';
+};
 
 export const MatchAnalysis = ({ matchId, onBack }) => {
   const { user } = useContext(AuthContext);
@@ -274,7 +286,7 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                   )}
                 </span>
               ),
-              children: <EnhancedPerformanceTab matchData={matchData} playerData={playerData} analysisData={analysisData} analysisLoading={analysisLoading} />
+              children: <EnhancedPerformanceTab matchData={matchData} playerData={playerData} teamData={teamData} analysisData={analysisData} analysisLoading={analysisLoading} />
             },
             {
               key: 'laning',
@@ -519,6 +531,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
               key={player.player_slot} 
               player={player} 
               isCurrentPlayer={player.account_id === playerData?.account_id}
+              heroIcon={getHeroIconById(player.hero_id, matchData.heroStats)}
             />
           ))}
           
@@ -563,6 +576,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
               key={player.player_slot} 
               player={player} 
               isCurrentPlayer={player.account_id === playerData?.account_id}
+              heroIcon={getHeroIconById(player.hero_id, matchData.heroStats)}
             />
           ))}
           
@@ -595,12 +609,13 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
         </Card>
       </Col>
       
-      {/* Draft Analysis Section */}
-      <Col span={24}>
+      {/* Draft Analysis Section - Reduced size */}
+      <Col span={16}>
         <Card 
           title={<span className="uppercase text-white">DRAFT ANALYSIS</span>}
           className="bg-gray-800/50 border-gray-700 mt-4"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size="small"
         >
           {draftAnalysis ? (
             <Row gutter={16}>
@@ -639,6 +654,37 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
         </Card>
       </Col>
       
+      {/* Significant Events */}
+      <Col span={8}>
+        <Card 
+          title={<span className="uppercase text-white">KEY EVENTS</span>}
+          className="bg-gray-800/50 border-gray-700 mt-4"
+          headStyle={{ borderBottom: '1px solid #374151' }}
+          size="small"
+        >
+          {objectivesTimeline.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {objectivesTimeline.slice(0, 8).map((event, idx) => (
+                <div key={idx} className="flex items-center justify-between text-sm p-2 bg-gray-900/30 rounded">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      event.type === 'roshan' ? 'bg-purple-500' : 
+                      event.team === 'radiant' ? 'bg-green-500' : 'bg-red-500'
+                    }`} />
+                    <Text className="text-white text-xs">{event.description}</Text>
+                  </div>
+                  <Text className="text-gray-400 text-xs">
+                    {Math.floor(event.time / 60)}:{(event.time % 60).toString().padStart(2, '0')}
+                  </Text>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty description="No significant events" size="small" />
+          )}
+        </Card>
+      </Col>
+      
       {/* Objectives Timeline */}
       <Col span={24}>
         <Card 
@@ -671,7 +717,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
 };
 
 // Enhanced Performance Tab Component
-const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisLoading }) => {
+const EnhancedPerformanceTab = ({ matchData, playerData, teamData, analysisData, analysisLoading }) => {
   if (!playerData) {
     return <Alert message="Player data not found in this match" type="warning" />;
   }
@@ -762,8 +808,9 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
           <Row gutter={[16, 16]}>
             {Object.entries(rolePerformance).map(([metric, data]) => (
               <Col span={6} key={metric}>
-                <div className="text-center p-4 bg-gray-900/50 rounded-lg">
-                  <Text className="text-xs text-gray-400 block mb-2">{metric}</Text>
+                <Tooltip title={getMetricExplanation(metric)} placement="top">
+                  <div className="text-center p-4 bg-gray-900/50 rounded-lg hover:bg-gray-800/50 transition-colors cursor-help">
+                    <Text className="text-xs text-gray-400 block mb-2">{metric}</Text>
                   <Progress 
                     type="circle" 
                     percent={data.percentile || 0} 
@@ -780,12 +827,13 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
                         >
                           {data.grade}
                         </div>
-                        <div className="text-xs text-gray-400">{data.percentile}%</div>
-                        <div className="text-xs text-gray-500">{data.value}</div>
+                        <div className="text-xs text-white font-semibold">{data.value || '0'}</div>
+                        <div className="text-xs text-gray-400">Score: {Math.round(data.percentile || 0)}</div>
                       </div>
                     )}
                   />
-                </div>
+                  </div>
+                </Tooltip>
               </Col>
             ))}
             {Object.keys(rolePerformance).length === 0 && (
@@ -957,23 +1005,46 @@ const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisL
           <Space direction="vertical" className="w-full">
             <div className="flex justify-between">
               <Text>Kill Participation</Text>
-              <Text strong className="text-white">
-                {Math.round((playerData.kills + playerData.assists) / Math.max(playerData.team_kills || 0, 1) * 100)}%
-              </Text>
+              <Tooltip title="Percentage of team kills and assists you were involved in. Ideal: 60-80%">
+                <Text strong className="text-white">
+                  {(() => {
+                    const totalTeamKills = teamData.radiant.reduce((sum, p) => sum + p.kills, 0) + 
+                                          teamData.dire.reduce((sum, p) => sum + p.kills, 0);
+                    const playerContribution = (playerData.kills + playerData.assists);
+                    const participation = totalTeamKills > 0 ? Math.min(Math.round((playerContribution / totalTeamKills) * 100), 100) : 0;
+                    return participation;
+                  })()}%
+                </Text>
+              </Tooltip>
             </div>
             <Progress 
-              percent={Math.round((playerData.kills + playerData.assists) / Math.max(playerData.team_kills || 0, 1) * 100)}
+              percent={(() => {
+                const totalTeamKills = teamData.radiant.reduce((sum, p) => sum + p.kills, 0) + 
+                                      teamData.dire.reduce((sum, p) => sum + p.kills, 0);
+                const playerContribution = (playerData.kills + playerData.assists);
+                return totalTeamKills > 0 ? Math.min(Math.round((playerContribution / totalTeamKills) * 100), 100) : 0;
+              })()}
               strokeColor={gamingColors.electric.cyan}
             />
             
             <div className="flex justify-between mt-4">
               <Text>Team Fight Contribution</Text>
-              <Text strong className="text-white">
-                {Math.round(playerData.teamfight_participation * 100)}%
-              </Text>
+              <Tooltip title="Average damage dealt in team fights relative to team total. Ideal: 15-25% for cores, 8-15% for supports">
+                <Text strong className="text-white">
+                  {(() => {
+                    const participation = playerData.teamfight_participation;
+                    if (participation === undefined || participation === null || isNaN(participation)) return '0';
+                    return Math.min(Math.round(participation * 100), 100);
+                  })()}%
+                </Text>
+              </Tooltip>
             </div>
             <Progress 
-              percent={Math.round(playerData.teamfight_participation * 100)}
+              percent={(() => {
+                const participation = playerData.teamfight_participation;
+                if (participation === undefined || participation === null || isNaN(participation)) return 0;
+                return Math.min(Math.round(participation * 100), 100);
+              })()}
               strokeColor={gamingColors.electric.purple}
             />
           </Space>
@@ -2108,8 +2179,8 @@ const VisionMapControlTab = ({ matchData, playerData, analysisData }) => {
     const duration = matchData.duration / 60; // in minutes
     
     // Advanced ward efficiency calculations
-    const wardUptime = Math.min((obs * 7) / Math.max(1, duration) * 100, 100);
-    const dewardEfficiency = sen > 0 ? ((obsKills + senKills) / sen * 100) : 0;
+    const wardUptime = Math.min((obs * 7) / Math.max(1, duration / 60) * 100, 100);
+    const dewardEfficiency = sen > 0 ? Math.min(((obsKills + senKills) / sen * 100), 200) : 0;
     const visionScore = (obs * 2.5 + sen * 1.5 + obsKills * 3 + senKills * 2);
     const wardsPerMinute = obs / Math.max(1, duration);
     const visionDensity = obs > 0 ? (duration / obs) : 0; // minutes between wards
