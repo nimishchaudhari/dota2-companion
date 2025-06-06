@@ -1224,7 +1224,6 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
     data: laningData.csData,
     xField: 'time',
     yField: 'value',
-    seriesField: 'type',
     smooth: true,
     animation: {
       appear: {
@@ -1260,7 +1259,7 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
       title: { text: 'Experience' },
     },
     theme: 'dark',
-    color: gamingColors.electric.purple,
+    color: [gamingColors.electric.purple],
   };
   
   return (
@@ -1355,7 +1354,7 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
           headStyle={{ borderBottom: '1px solid #374151' }}
         >
           <Timeline>
-            {playerData.kills_log?.filter(k => k.time < 600).map((kill, idx) => (
+            {(playerData.kills_log || []).filter(k => k && k.time < 600).map((kill, idx) => (
               <Timeline.Item 
                 key={idx} 
                 color="green"
@@ -1364,7 +1363,7 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
                 Killed {kill.key || 'an enemy'}
               </Timeline.Item>
             ))}
-            {playerData.buyback_log?.filter(b => b.time < 600).map((buyback, idx) => (
+            {(playerData.buyback_log || []).filter(b => b && b.time < 600).map((buyback, idx) => (
               <Timeline.Item 
                 key={`bb-${idx}`} 
                 color="orange"
@@ -1373,7 +1372,7 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
                 Used buyback
               </Timeline.Item>
             ))}
-            {playerData.runes_log?.filter(r => r.time < 600).map((rune, idx) => (
+            {(playerData.runes_log || []).filter(r => r && r.time < 600).map((rune, idx) => (
               <Timeline.Item 
                 key={`rune-${idx}`} 
                 color="blue"
@@ -1399,7 +1398,7 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
                 <Text className="text-xs text-gray-400 block mb-2">Lane Efficiency</Text>
                 <Progress 
                   type="circle" 
-                  percent={Math.round((playerData.lane_efficiency || 0) * 100)} 
+                  percent={Math.round(((playerData.lh_t?.[9] || 0) / Math.max(1, 10)) * 10)} 
                   strokeColor={gamingColors.electric.cyan}
                 />
               </div>
@@ -1419,7 +1418,7 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
               <div className="text-center p-4 bg-gray-900/50 rounded-lg">
                 <Text className="text-xs text-gray-400 block mb-2">Support Rotations</Text>
                 <div className="text-2xl font-bold" style={{ color: gamingColors.electric.purple }}>
-                  {playerData.obs_log?.filter(w => w.time < 600).length || 0}
+                  {(playerData.obs_log || []).filter(w => w && w.time < 600).length || 0}
                 </div>
                 <Text type="secondary" className="text-xs">Wards Placed</Text>
               </div>
@@ -1428,7 +1427,7 @@ const LaningPhaseTab = ({ playerData, analysisData }) => {
               <div className="text-center p-4 bg-gray-900/50 rounded-lg">
                 <Text className="text-xs text-gray-400 block mb-2">Rune Control</Text>
                 <div className="text-2xl font-bold" style={{ color: gamingColors.electric.yellow }}>
-                  {playerData.runes_log?.filter(r => r.time < 600).length || 0}
+                  {(playerData.runes_log || []).filter(r => r && r.time < 600).length || 0}
                 </div>
                 <Text type="secondary" className="text-xs">Runes Secured</Text>
               </div>
