@@ -12,12 +12,14 @@ import {
   UserOutlined, CrownOutlined, SafetyCertificateOutlined,
   EyeOutlined, RiseOutlined, FallOutlined, DashboardOutlined,
   BulbOutlined, InfoCircleOutlined, ThunderboltOutlined,
-  AimOutlined, RocketOutlined, AlertOutlined
+  AimOutlined, RocketOutlined, AlertOutlined, StarOutlined,
+  CheckCircleOutlined, ExclamationCircleOutlined, WarningOutlined
 } from '@ant-design/icons';
 import { Line, Bar, Pie, Radar, Area, Column } from '@ant-design/plots';
 import { gamingColors } from '../../theme/antdTheme.js';
 import { AuthContext } from '../../contexts/AuthContext.js';
 import authService from '../../services/auth.service.js';
+import matchAnalysisService from '../../services/matchAnalysisService.js';
 import { 
   getHeroIcon, 
   getItemIcon, 
@@ -33,6 +35,8 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
   const [matchData, setMatchData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [analysisData, setAnalysisData] = useState(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   useEffect(() => {
     const fetchMatchData = async () => {
@@ -76,6 +80,37 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
     }
   }, [matchId, user]);
 
+  // Fetch comprehensive KPI analysis
+  useEffect(() => {
+    const fetchAnalysisData = async () => {
+      if (!matchData || !user?.accountId) return;
+      
+      setAnalysisLoading(true);
+      try {
+        console.log(`[MATCH ANALYSIS] Fetching comprehensive KPI analysis for match ${matchId}, player ${user.accountId}`);
+        
+        const analysis = await matchAnalysisService.getMatchAnalysis(matchId, user.accountId);
+        setAnalysisData(analysis);
+        
+        console.log(`[MATCH ANALYSIS] KPI analysis completed:`, {
+          role: analysis.role.role,
+          grade: analysis.performance.grade,
+          overallScore: analysis.overallScore.score,
+          insights: analysis.insights.coachingPoints.length
+        });
+      } catch (error) {
+        console.error('[MATCH ANALYSIS] Failed to fetch KPI analysis:', error);
+        setAnalysisData(null);
+      } finally {
+        setAnalysisLoading(false);
+      }
+    };
+
+    if (matchData && user?.accountId && !analysisLoading) {
+      fetchAnalysisData();
+    }
+  }, [matchData, user?.accountId, matchId, analysisLoading]);
+
 
   const playerData = useMemo(() => {
     if (!matchData?.players) return null;
@@ -99,7 +134,13 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-900">
-        <Spin size="large" />
+        <Space direction="vertical" align="center" size="large">
+          <Spin size="large" />
+          <Text className="text-white text-lg">Loading match analysis...</Text>
+          {analysisLoading && (
+            <Text className="text-blue-400 text-sm">Calculating comprehensive KPIs...</Text>
+          )}
+        </Space>
       </div>
     );
   }
@@ -196,7 +237,7 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                   Overview
                 </span>
               ),
-              children: <EnhancedOverviewTab matchData={matchData} playerData={playerData} teamData={teamData} />
+              children: <EnhancedOverviewTab matchData={matchData} playerData={playerData} teamData={teamData} analysisData={analysisData} analysisLoading={analysisLoading} />
             },
             {
               key: 'performance',
@@ -204,9 +245,14 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                 <span>
                   <FireOutlined className="mr-2" />
                   Performance
+                  {analysisData?.performance?.grade && (
+                    <Tag className="ml-2" color={getGradeColor(analysisData.performance.grade).color}>
+                      {analysisData.performance.grade}
+                    </Tag>
+                  )}
                 </span>
               ),
-              children: <EnhancedPerformanceTab matchData={matchData} playerData={playerData} />
+              children: <EnhancedPerformanceTab matchData={matchData} playerData={playerData} analysisData={analysisData} analysisLoading={analysisLoading} />
             },
             {
               key: 'laning',
@@ -214,9 +260,14 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                 <span>
                   <RiseOutlined className="mr-2" />
                   Laning Phase
+                  {analysisData?.laning?.outcome && (
+                    <Tag className="ml-2" color={analysisData.laning.outcome === 'WIN' ? 'green' : analysisData.laning.outcome === 'DRAW' ? 'blue' : 'red'}>
+                      {analysisData.laning.outcome}
+                    </Tag>
+                  )}
                 </span>
               ),
-              children: <LaningPhaseTab playerData={playerData} />
+              children: <LaningPhaseTab playerData={playerData} analysisData={analysisData} analysisLoading={analysisLoading} />
             },
             {
               key: 'economy',
@@ -224,9 +275,14 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                 <span>
                   <ShoppingOutlined className="mr-2" />
                   Economy & Items
+                  {analysisData?.economy?.efficiency && (
+                    <Tag className="ml-2" color={analysisData.economy.efficiency >= 80 ? 'green' : analysisData.economy.efficiency >= 60 ? 'blue' : 'orange'}>
+                      {analysisData.economy.efficiency}%
+                    </Tag>
+                  )}
                 </span>
               ),
-              children: <EconomyResourcesTab matchData={matchData} playerData={playerData} />
+              children: <EconomyResourcesTab matchData={matchData} playerData={playerData} analysisData={analysisData} analysisLoading={analysisLoading} />
             },
             {
               key: 'combat',
@@ -234,9 +290,14 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                 <span>
                   <AimOutlined className="mr-2" />
                   Combat Intel
+                  {analysisData?.combat?.impact && (
+                    <Tag className="ml-2" color={analysisData.combat.impact >= 80 ? 'green' : analysisData.combat.impact >= 60 ? 'blue' : 'orange'}>
+                      {analysisData.combat.impact}%
+                    </Tag>
+                  )}
                 </span>
               ),
-              children: <CombatIntelligenceTab matchData={matchData} playerData={playerData} teamData={teamData} />
+              children: <CombatIntelligenceTab matchData={matchData} playerData={playerData} teamData={teamData} analysisData={analysisData} analysisLoading={analysisLoading} />
             },
             {
               key: 'vision',
@@ -244,9 +305,14 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                 <span>
                   <EyeOutlined className="mr-2" />
                   Vision & Map
+                  {analysisData?.vision?.grade && (
+                    <Tag className="ml-2" color={getGradeColor(analysisData.vision.grade).color}>
+                      {analysisData.vision.grade}
+                    </Tag>
+                  )}
                 </span>
               ),
-              children: <VisionMapControlTab matchData={matchData} playerData={playerData} />
+              children: <VisionMapControlTab matchData={matchData} playerData={playerData} analysisData={analysisData} analysisLoading={analysisLoading} />
             },
             {
               key: 'insights',
@@ -254,9 +320,12 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
                 <span>
                   <BulbOutlined className="mr-2" />
                   Insights
+                  {analysisData?.insights?.coachingPoints && (
+                    <Badge className="ml-2" count={analysisData.insights.coachingPoints.length} size="small" />
+                  )}
                 </span>
               ),
-              children: <ImprovementInsightsTab matchData={matchData} playerData={playerData} />
+              children: <ImprovementInsightsTab matchData={matchData} playerData={playerData} analysisLoading={analysisLoading} />
             }
           ]}
         />
@@ -579,106 +648,33 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
 };
 
 // Enhanced Performance Tab Component
-const EnhancedPerformanceTab = ({ matchData, playerData }) => {
+const EnhancedPerformanceTab = ({ matchData, playerData, analysisData, analysisLoading }) => {
   if (!playerData) {
     return <Alert message="Player data not found in this match" type="warning" />;
   }
+
+  // Show loading state for KPI calculations
+  if (analysisLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Space direction="vertical" align="center" size="large">
+          <Spin size="large" />
+          <Text className="text-white">Calculating comprehensive KPIs...</Text>
+          <Text className="text-gray-400 text-sm">Role detection, performance grading, and benchmarking</Text>
+        </Space>
+      </div>
+    );
+  }
   
-  // Determine player role based on lane and farm priority
-  const getPlayerRole = () => {
-    const lane = playerData.lane_role;
-    const goldShare = playerData.gold_per_min / matchData.radiant_gold_adv?.length || 1;
-    
-    if (lane === 1) return 'Carry';
-    if (lane === 2) return 'Mid';
-    if (lane === 3) return 'Offlane';
-    if (playerData.obs_placed > 10) return 'Support';
-    if (goldShare < 0.15) return 'Hard Support';
-    return 'Roamer';
-  };
+  // Use the advanced role detection and performance analysis
+  const role = analysisData?.role?.role || 'Unknown';
+  const roleConfidence = analysisData?.role?.confidence || 0;
+  const performanceGrade = analysisData?.performance || { grade: 'D', score: 0, breakdown: {} };
+  const overallScore = analysisData?.overallScore || { score: 0, grade: 'D', breakdown: {} };
   
-  const role = getPlayerRole();
-  
-  // Calculate role-specific performance scores
-  const getRolePerformance = () => {
-    const benchmarks = matchData.benchmarks?.result || {};
-    
-    switch(role) {
-      case 'Carry':
-        return {
-          'CS Efficiency': { 
-            value: playerData.last_hits, 
-            benchmark: benchmarks.gold_per_min?.[75] || 300,
-            score: Math.min(10, (playerData.last_hits / (benchmarks.last_hits?.[75] || 300)) * 10)
-          },
-          'Farm Speed': { 
-            value: playerData.gold_per_min, 
-            benchmark: benchmarks.gold_per_min?.[75] || 600,
-            score: Math.min(10, (playerData.gold_per_min / (benchmarks.gold_per_min?.[75] || 600)) * 10)
-          },
-          'Late Game Impact': { 
-            value: playerData.hero_damage, 
-            benchmark: benchmarks.hero_damage?.[75] || 20000,
-            score: Math.min(10, (playerData.hero_damage / (benchmarks.hero_damage?.[75] || 20000)) * 10)
-          },
-          'Death Avoidance': { 
-            value: playerData.deaths, 
-            benchmark: 5,
-            score: Math.max(0, 10 - (playerData.deaths * 2))
-          }
-        };
-      case 'Support':
-      case 'Hard Support':
-        return {
-          'Ward Efficiency': { 
-            value: playerData.obs_placed || 0, 
-            benchmark: 15,
-            score: Math.min(10, ((playerData.obs_placed || 0) / 15) * 10)
-          },
-          'Save Plays': { 
-            value: playerData.hero_healing || 0, 
-            benchmark: 3000,
-            score: Math.min(10, ((playerData.hero_healing || 0) / 3000) * 10)
-          },
-          'Space Creation': { 
-            value: playerData.stuns || 0, 
-            benchmark: 30,
-            score: Math.min(10, ((playerData.stuns || 0) / 30) * 10)
-          },
-          'Gold Efficiency': { 
-            value: playerData.gold_spent || 0, 
-            benchmark: playerData.total_gold || 1,
-            score: Math.min(10, (playerData.gold_spent / playerData.total_gold) * 10)
-          }
-        };
-      default:
-        return {
-          'Lane Dominance': { 
-            value: playerData.lane_efficiency || 0, 
-            benchmark: 0.8,
-            score: Math.min(10, (playerData.lane_efficiency || 0) * 12.5)
-          },
-          'Rotation Impact': { 
-            value: playerData.kills + playerData.assists, 
-            benchmark: 20,
-            score: Math.min(10, ((playerData.kills + playerData.assists) / 20) * 10)
-          },
-          'Map Control': { 
-            value: playerData.tower_damage || 0, 
-            benchmark: 3000,
-            score: Math.min(10, ((playerData.tower_damage || 0) / 3000) * 10)
-          },
-          'Team Fighting': { 
-            value: playerData.teamfight_participation || 0, 
-            benchmark: 0.7,
-            score: Math.min(10, (playerData.teamfight_participation || 0.5) * 14)
-          }
-        };
-    }
-  };
-  
-  const rolePerformance = getRolePerformance();
-  const overallScore = Object.values(rolePerformance).reduce((acc, metric) => acc + metric.score, 0) / Object.keys(rolePerformance).length;
+  // Use the comprehensive KPI analysis results
+  const rolePerformance = performanceGrade.breakdown || {};
+  const kpiOverallScore = performanceGrade.score || 0;
 
   // Calculate efficiency ratings
   const efficiencyMetrics = {
@@ -712,9 +708,12 @@ const EnhancedPerformanceTab = ({ matchData, playerData }) => {
           title={
             <Space>
               <span className="uppercase text-white">ROLE PERFORMANCE</span>
-              <Tag color={overallScore >= 8 ? 'gold' : overallScore >= 6 ? 'cyan' : overallScore >= 4 ? 'green' : 'red'}>
+              <Tag color={getGradeColor(performanceGrade.grade).color}>
                 {role.toUpperCase()}
               </Tag>
+              <Tooltip title={`${roleConfidence}% confidence in role detection`}>
+                <Tag color="blue">{roleConfidence}% confidence</Tag>
+              </Tooltip>
             </Space>
           }
           className="bg-gray-800/50 border-gray-700"
@@ -724,13 +723,16 @@ const EnhancedPerformanceTab = ({ matchData, playerData }) => {
               <div 
                 className="text-4xl font-bold"
                 style={{ 
-                  color: getGradeColor(overallScore >= 9 ? 'S' : overallScore >= 7 ? 'A' : overallScore >= 5 ? 'B' : overallScore >= 3 ? 'C' : 'D').color,
-                  textShadow: getGradeColor(overallScore >= 9 ? 'S' : overallScore >= 7 ? 'A' : overallScore >= 5 ? 'B' : overallScore >= 3 ? 'C' : 'D').glow
+                  color: getGradeColor(performanceGrade.grade).color,
+                  textShadow: getGradeColor(performanceGrade.grade).glow
                 }}
               >
-                {overallScore.toFixed(1)}/10
+                {performanceGrade.grade}
               </div>
-              <Text type="secondary">Overall Score</Text>
+              <Text type="secondary">{kpiOverallScore}/100 Score</Text>
+              <div className="mt-2">
+                <Text className="text-xs text-gray-400">Overall Match: {overallScore.grade} ({overallScore.score}/100)</Text>
+              </div>
             </div>
           }
         >
@@ -741,22 +743,147 @@ const EnhancedPerformanceTab = ({ matchData, playerData }) => {
                   <Text className="text-xs text-gray-400 block mb-2">{metric}</Text>
                   <Progress 
                     type="circle" 
-                    percent={data.score * 10} 
+                    percent={data.percentile || 0} 
                     size={80}
-                    strokeColor={data.score >= 8 ? gamingColors.electric.cyan : data.score >= 5 ? gamingColors.electric.green : gamingColors.electric.orange}
+                    strokeColor={data.percentile >= 80 ? gamingColors.electric.cyan : data.percentile >= 60 ? gamingColors.electric.green : data.percentile >= 40 ? gamingColors.electric.orange : gamingColors.electric.red}
                     format={() => (
                       <div>
-                        <div className="text-lg font-bold">{data.score.toFixed(1)}</div>
-                        <div className="text-xs text-gray-400">{data.value}</div>
+                        <div 
+                          className="text-lg font-bold"
+                          style={{ 
+                            color: getGradeColor(data.grade).color,
+                            textShadow: getGradeColor(data.grade).glow
+                          }}
+                        >
+                          {data.grade}
+                        </div>
+                        <div className="text-xs text-gray-400">{data.percentile}%</div>
+                        <div className="text-xs text-gray-500">{data.value}</div>
                       </div>
                     )}
                   />
                 </div>
               </Col>
             ))}
+            {Object.keys(rolePerformance).length === 0 && (
+              <Col span={24}>
+                <Alert 
+                  message="KPI Analysis in Progress" 
+                  description="Advanced performance metrics will appear here once analysis is complete."
+                  type="info" 
+                  showIcon 
+                />
+              </Col>
+            )}
           </Row>
         </Card>
       </Col>
+
+      {/* Comprehensive KPI Dashboard */}
+      {analysisData && (
+        <Col span={24}>
+          <Card 
+            title={
+              <Space>
+                <StarOutlined />
+                <span className="uppercase text-white">COMPREHENSIVE KPI ANALYSIS</span>
+              </Space>
+            }
+            className="bg-gray-800/50 border-gray-700"
+            headStyle={{ borderBottom: '1px solid #374151' }}
+          >
+            <Row gutter={[16, 16]}>
+              {/* Overall Performance Breakdown */}
+              <Col span={8}>
+                <Card size="small" className="bg-gray-900/50 border-gray-600">
+                  <Statistic
+                    title={<Text className="text-gray-300">Overall Match Score</Text>}
+                    value={overallScore.score}
+                    suffix="/100"
+                    valueStyle={{ 
+                      color: getGradeColor(overallScore.grade).color,
+                      textShadow: getGradeColor(overallScore.grade).glow
+                    }}
+                  />
+                  <div className="mt-2">
+                    <Text className="text-xs text-gray-400">Grade: </Text>
+                    <Text 
+                      className="text-sm font-bold"
+                      style={{ color: getGradeColor(overallScore.grade).color }}
+                    >
+                      {overallScore.grade}
+                    </Text>
+                  </div>
+                </Card>
+              </Col>
+
+              <Col span={8}>
+                <Card size="small" className="bg-gray-900/50 border-gray-600">
+                  <Statistic
+                    title={<Text className="text-gray-300">Role Performance</Text>}
+                    value={performanceGrade.score}
+                    suffix="/100"
+                    valueStyle={{ 
+                      color: getGradeColor(performanceGrade.grade).color,
+                      textShadow: getGradeColor(performanceGrade.grade).glow
+                    }}
+                  />
+                  <div className="mt-2">
+                    <Text className="text-xs text-gray-400">Detected Role: </Text>
+                    <Text className="text-sm font-bold text-cyan-400">{role}</Text>
+                  </div>
+                </Card>
+              </Col>
+
+              <Col span={8}>
+                <Card size="small" className="bg-gray-900/50 border-gray-600">
+                  <Statistic
+                    title={<Text className="text-gray-300">Improvement Potential</Text>}
+                    value={analysisData.insights?.improvementScore || 0}
+                    suffix="/100"
+                    valueStyle={{ 
+                      color: analysisData.insights?.improvementScore >= 70 ? gamingColors.electric.green : 
+                             analysisData.insights?.improvementScore >= 50 ? gamingColors.electric.orange : 
+                             gamingColors.electric.red
+                    }}
+                  />
+                  <div className="mt-2">
+                    <Text className="text-xs text-gray-400">
+                      {analysisData.insights?.coachingPoints?.length || 0} coaching points
+                    </Text>
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Performance Breakdown */}
+            <Divider className="border-gray-600" />
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <Text className="text-white font-semibold">Performance Breakdown by Game Phase:</Text>
+              </Col>
+              {Object.entries(overallScore.breakdown || {}).map(([phase, score]) => (
+                <Col span={4} key={phase}>
+                  <div className="text-center p-3 bg-gray-900/50 rounded-lg">
+                    <Text className="text-xs text-gray-400 block mb-1 capitalize">{phase}</Text>
+                    <Progress 
+                      type="circle" 
+                      percent={(score / 100) * 100}
+                      size={60}
+                      strokeColor={score >= 80 ? gamingColors.electric.cyan : score >= 60 ? gamingColors.electric.green : gamingColors.electric.orange}
+                      format={() => (
+                        <div className="text-sm font-bold" style={{ color: score >= 80 ? gamingColors.electric.cyan : score >= 60 ? gamingColors.electric.green : gamingColors.electric.orange }}>
+                          {score}
+                        </div>
+                      )}
+                    />
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        </Col>
+      )}
       
       {/* Efficiency Ratings */}
       <Col span={24}>
@@ -2262,10 +2389,11 @@ const VisionMapControlTab = ({ matchData, playerData }) => {
 };
 
 // Enhanced Improvement Insights Tab Component
-const ImprovementInsightsTab = ({ matchData, playerData }) => {
+const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading }) => {
+  
   // Advanced insights generation with detailed analysis
   const insights = useMemo(() => {
-    if (!playerData) {
+    if (!playerData || !matchData) {
       return { tips: [], gameImpact: [], mistakes: [], strengths: [] };
     }
     const tips = [];
@@ -2379,7 +2507,7 @@ const ImprovementInsightsTab = ({ matchData, playerData }) => {
 
   // Generate actionable coaching points
   const coachingPoints = useMemo(() => {
-    if (!playerData) return [];
+    if (!playerData || !matchData) return [];
     
     const points = [];
     
@@ -2414,6 +2542,19 @@ const ImprovementInsightsTab = ({ matchData, playerData }) => {
     
     return points;
   }, [playerData, matchData]);
+  
+  // Show loading state for insights calculation
+  if (analysisLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Space direction="vertical" align="center" size="large">
+          <Spin size="large" />
+          <Text className="text-white">Generating AI-powered insights...</Text>
+          <Text className="text-gray-400 text-sm">Analyzing mistakes, strengths, and improvement opportunities</Text>
+        </Space>
+      </div>
+    );
+  }
   
   if (!playerData) {
     return <Alert message="Player data not found in this match" type="warning" />;
