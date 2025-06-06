@@ -7,7 +7,7 @@ const Dota2Logo = ({ className = "w-6 h-6", size }) => {
   const logoStyle = size ? { width: size, height: size } : {};
   return (
     <img 
-      src="/dota2-logo.png" 
+      src="/assets/dota2-logo.png" 
       alt="Dota 2 Logo" 
       className={className}
       style={logoStyle}
