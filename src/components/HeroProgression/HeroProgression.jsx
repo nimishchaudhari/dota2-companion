@@ -12,9 +12,7 @@ import {
   MASTERY_TIERS 
 } from '../../utils/masteryCalculations.js';
 import { 
-  analyzeHeroStreak, 
-  getOverallMomentum,
-  getStreakDisplay 
+  analyzeHeroStreak
 } from '../../utils/streakAnalysis.js';
 // Removed achievement system imports - focusing on performance analytics
 import {
@@ -47,8 +45,8 @@ const HeroProgression = ({ onBack }) => {
         // Calculate streaks
         const streakData = analyzeHeroStreak(recentMatches, hero.hero_id);
         
-        // Check achievements
-        const achievements = checkHeroAchievements(hero, mastery);
+        // Check achievements (removed - focusing on performance analytics)
+        const achievements = [];
         
         return {
           ...hero,
@@ -466,7 +464,7 @@ const HeroOverviewTab = ({ hero, analytics }) => {
 };
 
 // Performance Tab Component  
-const HeroPerformanceTab = ({ hero, analytics }) => {
+const HeroPerformanceTab = ({ analytics }) => {
   if (!analytics?.performanceData) {
     return <Empty description="No performance data available" />;
   }
@@ -535,7 +533,7 @@ const HeroPerformanceTab = ({ hero, analytics }) => {
 };
 
 // Builds Tab Component
-const HeroBuildsTab = ({ hero, analytics }) => {
+const HeroBuildsTab = ({ analytics }) => {
   if (!analytics?.topItems) {
     return <Empty description="No item build data available" />;
   }
@@ -585,7 +583,7 @@ const HeroBuildsTab = ({ hero, analytics }) => {
 };
 
 // Matches Tab Component
-const HeroMatchesTab = ({ hero, analytics }) => {
+const HeroMatchesTab = ({ analytics }) => {
   if (!analytics?.recentMatches) {
     return <Empty description="No recent matches available" />;
   }

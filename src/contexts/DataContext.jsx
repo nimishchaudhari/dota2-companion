@@ -56,6 +56,23 @@ export const DataProvider = ({ children }) => {
       ratings: null,
       playerTotals: null,
       heroes: null,
+      // Enhanced data structures
+      detailedMatches: {
+        matches: [],
+        totalFetched: 0,
+        lastFetchedMatchId: null,
+        isComplete: false,
+        fetchProgress: { current: 0, total: 0 },
+        lastUpdated: null
+      },
+      heroAnalytics: {},
+      enhancedAnalytics: {},
+      performanceMetrics: {
+        trends: {},
+        streaks: {},
+        recentForm: {},
+        seasonal: {}
+      }
     });
     setErrors({});
   };
@@ -96,14 +113,15 @@ export const DataProvider = ({ children }) => {
       ]);
 
       // Update data with successful results
-      setData({
+      setData(prev => ({
+        ...prev,
         recentMatches: recentMatches.status === 'fulfilled' ? recentMatches.value : null,
         heroStats: heroStats.status === 'fulfilled' ? heroStats.value : null,
         winLoss: winLoss.status === 'fulfilled' ? winLoss.value : null,
         ratings: ratings.status === 'fulfilled' ? ratings.value : null,
         playerTotals: playerTotals.status === 'fulfilled' ? playerTotals.value : null,
         heroes: heroes.status === 'fulfilled' ? heroes.value : null,
-      });
+      }));
 
       // Handle errors
       const newErrors = {};
@@ -366,7 +384,7 @@ export const DataProvider = ({ children }) => {
       // Get enhanced hero data with fallback to basic data
       getEnhancedHeroData: (heroId) => {
         // Check for enhanced analytics first
-        if (data.heroAnalytics[heroId]) {
+        if (data.heroAnalytics && data.heroAnalytics[heroId]) {
           return {
             ...data.heroAnalytics[heroId],
             source: 'enhanced',
@@ -406,7 +424,7 @@ export const DataProvider = ({ children }) => {
           performanceData: heroStat.sum_gold_per_min != null && heroStat.sum_xp_per_min != null,
           detailedData: heroStat.sum_last_hits != null && heroStat.sum_hero_damage != null,
           recentMatches: data.recentMatches?.some(m => m.hero_id === heroId),
-          enhancedData: data.enhancedAnalytics?.[heroId] != null
+          enhancedData: data.enhancedAnalytics && data.enhancedAnalytics[heroId] != null
         };
         
         score = Object.values(checks).filter(Boolean).length;

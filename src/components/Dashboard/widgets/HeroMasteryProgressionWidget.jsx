@@ -2,7 +2,6 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Typography, Space, Empty, Spin, Input, Select, Card, Modal, Tag, Tooltip, Progress, Skeleton } from 'antd';
 import { SearchOutlined, FireOutlined, FilterOutlined, ReloadOutlined, CloudSyncOutlined } from '@ant-design/icons';
 import { useData } from '../../../contexts/DataContext.jsx';
-import { gamingColors } from '../../../theme/antdTheme.js';
 import { getHeroIcon, normalizeHeroName } from '../../../utils/assetHelpers.js';
 import { 
   calculateHeroMastery, 
@@ -28,10 +27,8 @@ export const HeroMasteryProgressionWidget = React.memo(() => {
     loading, 
     refreshSection,
     loadEnhancedHeroData,
-    getDataCompleteness,
     getEnhancedHeroData,
     detailedMatches,
-    heroAnalytics,
     refreshAllHeroAnalytics 
   } = useData();
   const [searchText, setSearchText] = useState('');
@@ -151,13 +148,14 @@ export const HeroMasteryProgressionWidget = React.memo(() => {
           }
           return b.mastery.stats.games - a.mastery.stats.games;
         });
-      case 'performance':
+      case 'performance': {
         const tierOrder = { S: 5, A: 4, B: 3, C: 2, D: 1 };
         return filtered.sort((a, b) => {
           const tierDiff = tierOrder[b.performance.tier] - tierOrder[a.performance.tier];
           if (tierDiff !== 0) return tierDiff;
           return b.mastery.stats.winrate - a.mastery.stats.winrate;
         });
+      }
       case 'farm':
         return filtered.sort((a, b) => b.performance.avgGPM - a.performance.avgGPM);
       case 'recent':
@@ -171,7 +169,7 @@ export const HeroMasteryProgressionWidget = React.memo(() => {
       default:
         return filtered;
     }
-  }, [heroStats, heroMap, recentMatches, searchText, sortBy]);
+  }, [heroStats, heroMap, recentMatches, searchText, sortBy, getEnhancedHeroData]);
 
   // Get momentum indicators for header
   const momentumData = useMemo(() => {
@@ -187,7 +185,7 @@ export const HeroMasteryProgressionWidget = React.memo(() => {
     if (!hero.isEnhanced) {
       triggerEnhancedDataLoad(hero.hero_id);
     }
-  }, []);
+  }, [triggerEnhancedDataLoad]);
   
   const triggerEnhancedDataLoad = useCallback(async (heroId) => {
     if (enhancedDataLoading) return;
@@ -403,7 +401,7 @@ const HeroMasteryCard = ({ hero, onClick }) => {
   const masteryBadge = getMasteryBadge(hero.mastery.tier);
   const winrate = Math.round((hero.win / hero.games) * 100);
   const kda = hero.mastery.stats.kda;
-  const [showEnhancedMetrics, setShowEnhancedMetrics] = useState(false);
+  // const [showEnhancedMetrics, setShowEnhancedMetrics] = useState(false);
   
   const getPerformanceTierColor = (tier) => {
     const colors = {
@@ -542,7 +540,7 @@ const HeroMasteryCard = ({ hero, onClick }) => {
 
 // Enhanced Hero Detail View with Progressive Analytics
 const HeroDetailView = ({ hero }) => {
-  const { recentMatches } = useData();
+  // const { recentMatches } = useData();
   const masteryBadge = getMasteryBadge(hero.mastery.tier);
   const [analyticsLoading, setAnalyticsLoading] = useState(!hero.hasRichData);
   const [performanceTrends, setPerformanceTrends] = useState(null);
@@ -564,9 +562,9 @@ const HeroDetailView = ({ hero }) => {
   }, [hero.hasRichData, hero.performance.avgGPM, hero.mastery.stats.kda]);
   
   // Calculate detailed hero stats
-  const heroMatches = recentMatches?.filter(match => match.hero_id === hero.hero_id) || [];
+  // const heroMatches = recentMatches?.filter(match => match.hero_id === hero.hero_id) || [];
   const avgHeroDamage = hero.performance.avgHeroDamage;
-  const avgTowerDamage = hero.games > 0 && hero.sum_tower_damage != null ? Math.round(hero.sum_tower_damage / hero.games) : null;
+  // const avgTowerDamage = hero.games > 0 && hero.sum_tower_damage != null ? Math.round(hero.sum_tower_damage / hero.games) : null;
   const avgHeroHealing = hero.games > 0 && hero.sum_hero_healing != null ? Math.round(hero.sum_hero_healing / hero.games) : null;
   
   // Role analysis based on performance patterns

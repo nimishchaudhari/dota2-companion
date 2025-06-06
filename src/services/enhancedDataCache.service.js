@@ -53,7 +53,6 @@ class EnhancedDataCacheService {
     const {
       maxMatches = 1000,
       batchSize = this.rateLimitManager.batchSize,
-      priority = 'medium',
       onProgress = () => {}
     } = options;
 
@@ -296,7 +295,6 @@ class EnhancedDataCacheService {
     if (matches.length === 0) return { role: 'Unknown', confidence: 0 };
 
     const averageGPM = matches.reduce((sum, m) => sum + (m.gold_per_min || 0), 0) / matches.length;
-    const averageXPM = matches.reduce((sum, m) => sum + (m.xp_per_min || 0), 0) / matches.length;
     const averageLastHits = matches.reduce((sum, m) => sum + (m.last_hits || 0), 0) / matches.length;
 
     // Role classification based on performance patterns
@@ -398,7 +396,7 @@ class EnhancedDataCacheService {
               storage.removeItem(key);
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // Invalid item, remove it
           storage.removeItem(key);
         }
