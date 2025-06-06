@@ -16,11 +16,7 @@ import {
   getOverallMomentum,
   getStreakDisplay 
 } from '../../utils/streakAnalysis.js';
-import { 
-  checkHeroAchievements, 
-  getRecentAchievements,
-  calculateAchievementCompletion 
-} from '../../utils/achievementSystem.js';
+// Removed achievement system imports - focusing on performance analytics
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
@@ -287,8 +283,7 @@ const HeroProgression = ({ onBack }) => {
   // Individual hero analysis view
   const masteryBadge = getMasteryBadge(selectedHero.mastery.tier);
   const winrate = selectedHero.games > 0 ? Math.round((selectedHero.win / selectedHero.games) * 100) : 0;
-  const kda = selectedHero.games > 0 ? 
-    Math.round((((selectedHero.sum_kills + selectedHero.sum_assists) / Math.max(selectedHero.sum_deaths, 1)) / selectedHero.games) * 100) / 100 : 0;
+  const kda = selectedHero.games > 0 ? Math.round((((selectedHero.sum_kills || 0) + (selectedHero.sum_assists || 0)) / Math.max((selectedHero.sum_deaths || 0), 1)) / selectedHero.games * 100) / 100 : 0;
 
   return (
     <div className="min-h-screen bg-gray-900">

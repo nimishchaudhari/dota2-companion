@@ -1,26 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { Typography, Space, Empty, Spin, Input, Select, Card, Progress, Tag, Tooltip, Modal } from 'antd';
-import { SearchOutlined, FireOutlined, TrophyOutlined, StarOutlined } from '@ant-design/icons';
+import { Typography, Space, Empty, Spin, Input, Select, Card, Modal, Tag, Tooltip } from 'antd';
+import { SearchOutlined, FireOutlined, FilterOutlined } from '@ant-design/icons';
 import { useData } from '../../../contexts/DataContext.jsx';
 import { gamingColors } from '../../../theme/antdTheme.js';
 import { getHeroIcon, normalizeHeroName } from '../../../utils/assetHelpers.js';
 import { 
   calculateHeroMastery, 
-  calculateNextTierRequirements, 
   getMasteryBadge,
-  sortHeroesByMastery,
   MASTERY_TIERS 
 } from '../../../utils/masteryCalculations.js';
 import { 
   analyzeHeroStreak, 
-  getOverallMomentum,
-  getStreakDisplay 
+  getOverallMomentum
 } from '../../../utils/streakAnalysis.js';
-import { 
-  checkHeroAchievements, 
-  getRecentAchievements,
-  calculateAchievementCompletion 
-} from '../../../utils/achievementSystem.js';
 
 const { Title, Text } = Typography;
 
@@ -31,32 +23,53 @@ export const HeroMasteryProgressionWidget = () => {
   const [selectedHero, setSelectedHero] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Transform hero data with mastery calculations
+  // Transform hero data with enhanced analytics
   const heroMasteryData = useMemo(() => {
     if (!heroStats || !heroMap) return [];
     
     const heroesWithMastery = heroStats
-      .filter(hero => hero.games >= 1) // Include all heroes with at least 1 game
+      .filter(hero => hero.games >= 1)
       .map(hero => {
         const heroData = heroMap[hero.hero_id];
         const heroName = heroData?.localized_name || heroData?.name || `Hero ${hero.hero_id}`;
         
-        // Calculate mastery
+        // Calculate mastery and performance metrics
         const mastery = calculateHeroMastery(hero);
-        
-        // Calculate streaks
         const streakData = analyzeHeroStreak(recentMatches, hero.hero_id);
         
-        // Check achievements
-        const achievements = checkHeroAchievements(hero, mastery);
+        // Enhanced performance calculations
+        const avgGPM = hero.games > 0 ? Math.round((hero.sum_gold_per_min || 0) / hero.games) : 0;
+        const avgXPM = hero.games > 0 ? Math.round((hero.sum_xp_per_min || 0) / hero.games) : 0;
+        const avgCSPerMin = hero.games > 0 ? Math.round(((hero.sum_last_hits || 0) / hero.games) / 10) / 10 : 0;
+        const avgHeroDamage = hero.games > 0 ? Math.round((hero.sum_hero_damage || 0) / hero.games) : 0;
         
+        // Performance tier calculation (S, A, B, C, D)
+        const getPerformanceTier = () => {
+          const winrate = mastery.stats.winrate;
+          const kda = mastery.stats.kda;
+          const farmScore = avgGPM > 500 ? 2 : avgGPM > 350 ? 1 : 0;
+          const score = (winrate >= 65 ? 2 : winrate >= 55 ? 1 : 0) + 
+                       (kda >= 2.5 ? 2 : kda >= 1.5 ? 1 : 0) + farmScore;
+          
+          if (score >= 5) return 'S';
+          if (score >= 4) return 'A';
+          if (score >= 3) return 'B';
+          if (score >= 2) return 'C';
+          return 'D';
+        };
+
         return {
           ...hero,
           name: heroName,
           mastery,
           streakData,
-          achievements,
-          nextRequirements: calculateNextTierRequirements(hero, mastery)
+          performance: {
+            avgGPM,
+            avgXPM,
+            avgCSPerMin,
+            avgHeroDamage,
+            tier: getPerformanceTier()
+          }
         };
       });
 
@@ -68,23 +81,32 @@ export const HeroMasteryProgressionWidget = () => {
       );
     }
 
-    // Apply sorting
+    // Enhanced sorting options
     switch (sortBy) {
       case 'mastery':
-        return sortHeroesByMastery(filtered);
-      case 'games':
-        return filtered.sort((a, b) => b.games - a.games);
-      case 'winrate': {
-        const getWinRate = (hero) => hero.games > 0 ? (hero.win / hero.games * 100) : 0;
-        return filtered.sort((a, b) => getWinRate(b) - getWinRate(a));
-      }
-      case 'streak': {
+        return filtered.sort((a, b) => {
+          if (a.mastery.level !== b.mastery.level) {
+            return b.mastery.level - a.mastery.level;
+          }
+          return b.mastery.stats.games - a.mastery.stats.games;
+        });
+      case 'performance':
+        const tierOrder = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+        return filtered.sort((a, b) => {
+          const tierDiff = tierOrder[b.performance.tier] - tierOrder[a.performance.tier];
+          if (tierDiff !== 0) return tierDiff;
+          return b.mastery.stats.winrate - a.mastery.stats.winrate;
+        });
+      case 'farm':
+        return filtered.sort((a, b) => b.performance.avgGPM - a.performance.avgGPM);
+      case 'recent':
         return filtered.sort((a, b) => {
           if (a.streakData.streakType === 'win' && b.streakData.streakType !== 'win') return -1;
           if (b.streakData.streakType === 'win' && a.streakData.streakType !== 'win') return 1;
-          return b.streakData.currentStreak - a.streakData.currentStreak;
+          return b.streakData.winRate - a.streakData.winRate;
         });
-      }
+      case 'games':
+        return filtered.sort((a, b) => b.games - a.games);
       default:
         return filtered;
     }
@@ -95,16 +117,6 @@ export const HeroMasteryProgressionWidget = () => {
     if (!heroStats || !recentMatches) return null;
     return getOverallMomentum(recentMatches, heroStats);
   }, [heroStats, recentMatches]);
-
-  // Get recent achievements
-  const recentAchievements = useMemo(() => {
-    if (!heroMasteryData) return [];
-    const allAchievements = heroMasteryData.flatMap(hero => 
-      hero.achievements.map(ach => ({ ...ach, heroName: hero.name }))
-    );
-    return getRecentAchievements(allAchievements, 3);
-  }, [heroMasteryData]);
-
 
   const handleHeroClick = (hero) => {
     setSelectedHero(hero);
@@ -127,21 +139,21 @@ export const HeroMasteryProgressionWidget = () => {
           HERO MASTERY PROGRESSION
         </Title>
         <Text type="secondary" className="uppercase tracking-wider" style={{ fontSize: '10px' }}>
-          Track your expertise and improvement
+          Performance analytics and mastery tracking
         </Text>
       </div>
 
       {/* Momentum Indicators */}
-      {momentumData && (
-        <div className="mb-4 flex flex-wrap gap-2">
+      {momentumData && (momentumData.hotStreak || momentumData.coldSpell) && (
+        <div className="mb-3 flex flex-wrap gap-2">
           {momentumData.hotStreak && (
             <Tooltip title={`${momentumData.hotStreak.streak} game win streak`}>
               <Tag 
                 color="success" 
                 icon={<FireOutlined />}
-                className="text-xs"
+                size="small"
               >
-                🔥 Hot: {momentumData.hotStreak.heroName} ({momentumData.hotStreak.streak}W)
+                🔥 {momentumData.hotStreak.heroName} ({momentumData.hotStreak.streak}W)
               </Tag>
             </Tooltip>
           )}
@@ -149,58 +161,43 @@ export const HeroMasteryProgressionWidget = () => {
             <Tooltip title={`${momentumData.coldSpell.streak} game loss streak`}>
               <Tag 
                 color="processing" 
-                className="text-xs"
+                size="small"
               >
-                🧊 Cold: {momentumData.coldSpell.heroName} ({momentumData.coldSpell.streak}L)
+                🧊 {momentumData.coldSpell.heroName} ({momentumData.coldSpell.streak}L)
               </Tag>
             </Tooltip>
           )}
         </div>
       )}
 
-      {/* Controls */}
+      {/* Enhanced Controls */}
       <Space className="mb-4" style={{ width: '100%' }}>
         <Input
           placeholder="Search heroes..."
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: 180 }}
+          style={{ width: 160 }}
           size="small"
         />
         <Select
           value={sortBy}
           onChange={setSortBy}
-          style={{ width: 120 }}
+          style={{ width: 140 }}
           size="small"
+          suffixIcon={<FilterOutlined />}
           options={[
-            { label: 'Mastery', value: 'mastery' },
-            { label: 'Games', value: 'games' },
-            { label: 'Win Rate', value: 'winrate' },
-            { label: 'Streak', value: 'streak' },
+            { label: 'Mastery Level', value: 'mastery' },
+            { label: 'Performance', value: 'performance' },
+            { label: 'Farm Efficiency', value: 'farm' },
+            { label: 'Recent Form', value: 'recent' },
+            { label: 'Experience', value: 'games' },
           ]}
         />
       </Space>
 
-      {/* Recent Achievement */}
-      {recentAchievements.length > 0 && (
-        <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)' }}>
-          <Space>
-            <TrophyOutlined style={{ color: gamingColors.electric.yellow, fontSize: '16px' }} />
-            <div>
-              <Text className="text-white font-bold text-sm">
-                🏆 Recent Achievement:
-              </Text>
-              <div className="text-xs text-gray-300">
-                "{recentAchievements[0].name}" - {recentAchievements[0].heroName}
-              </div>
-            </div>
-          </Space>
-        </div>
-      )}
-
       {/* Hero List */}
-      <div className="flex-1 overflow-auto space-y-3">
+      <div className="flex-1 overflow-auto space-y-2">
         {heroMasteryData.length > 0 ? (
           heroMasteryData.slice(0, 8).map(hero => (
             <HeroMasteryCard 
@@ -211,21 +208,22 @@ export const HeroMasteryProgressionWidget = () => {
           ))
         ) : (
           <Empty
-            description="No hero mastery data available"
+            description="No hero data found"
             className="h-full flex flex-col justify-center"
+            imageStyle={{ height: 40 }}
           />
         )}
       </div>
 
       {/* View All Button */}
       {heroMasteryData.length > 8 && (
-        <div className="mt-4 text-center">
+        <div className="mt-3 text-center">
           <Text 
             type="secondary" 
-            className="cursor-pointer hover:text-cyan-400 text-xs"
+            className="cursor-pointer hover:text-cyan-400 text-xs transition-colors"
             onClick={() => window.dispatchEvent(new CustomEvent('navigate-to-hero-progression'))}
           >
-            View All {heroMasteryData.length} Heroes
+            View All {heroMasteryData.length} Heroes →
           </Text>
         </div>
       )}
@@ -241,7 +239,7 @@ export const HeroMasteryProgressionWidget = () => {
                   alt={selectedHero.name}
                   className="w-8 h-8 rounded"
                 />
-                <span className="text-white">{selectedHero.name} - Mastery Details</span>
+                <span className="text-white">{selectedHero.name} - Performance Analysis</span>
               </>
             )}
           </Space>
@@ -257,95 +255,97 @@ export const HeroMasteryProgressionWidget = () => {
   );
 };
 
-// Hero Mastery Card Component
+// Redesigned Hero Mastery Card - Clean, minimal design focused on key metrics
 const HeroMasteryCard = ({ hero, onClick }) => {
   const masteryBadge = getMasteryBadge(hero.mastery.tier);
-  const streakDisplay = getStreakDisplay(hero.streakData);
-  const winrate = hero.games > 0 ? Math.round((hero.win / hero.games) * 100) : 0;
-  const kda = hero.games > 0 ? 
-    Math.round((((hero.sum_kills + hero.sum_assists) / Math.max(hero.sum_deaths, 1)) / hero.games) * 100) / 100 : 0;
+  const winrate = Math.round((hero.win / hero.games) * 100);
+  const kda = hero.mastery.stats.kda;
+  
+  const getPerformanceTierColor = (tier) => {
+    const colors = {
+      S: 'text-orange-400',
+      A: 'text-green-400', 
+      B: 'text-cyan-400',
+      C: 'text-yellow-400',
+      D: 'text-gray-400'
+    };
+    return colors[tier] || 'text-gray-400';
+  };
 
   return (
     <Card
       size="small"
-      className="cursor-pointer hover:border-cyan-400 transition-colors"
-      style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}
+      className="cursor-pointer hover:border-cyan-400 transition-all duration-200 hover:shadow-lg"
+      style={{ 
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(255, 255, 255, 0.08)'
+      }}
       onClick={onClick}
+      bodyStyle={{ padding: '12px' }}
     >
-      <div className="flex items-center space-x-3">
-        {/* Hero Icon */}
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-800 flex items-center justify-center">
+      <div className="flex items-center justify-between">
+        {/* Left: Hero Icon + Basic Info */}
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded overflow-hidden bg-gray-800 flex-shrink-0">
             <img
               src={getHeroIcon(normalizeHeroName(hero.name))}
               alt={hero.name}
               className="w-full h-full object-cover"
             />
           </div>
-        </div>
-
-        {/* Hero Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
-            <Text strong className="text-white text-sm truncate">
-              {hero.name}
-            </Text>
-            <Tag 
-              color={masteryBadge.color}
-              className="text-xs"
-              style={{ fontSize: '10px', padding: '0 4px' }}
-            >
-              {masteryBadge.shortName} {masteryBadge.emoji}
-            </Tag>
-          </div>
           
-          <div className="flex items-center space-x-4 text-xs text-gray-400">
-            <span>{hero.games} games</span>
-            <span className={winrate >= 60 ? 'text-green-400' : winrate >= 50 ? 'text-yellow-400' : 'text-red-400'}>
-              {winrate}% WR
-            </span>
-            <span className={kda >= 2.5 ? 'text-green-400' : kda >= 1.5 ? 'text-yellow-400' : 'text-red-400'}>
-              {kda} KDA
-            </span>
-          </div>
-        </div>
-
-        {/* Progress & Status */}
-        <div className="flex-shrink-0 text-right">
-          {/* Mastery Progress */}
-          <div className="mb-2">
-            <Progress
-              percent={hero.mastery.progress}
-              size="small"
-              strokeColor={MASTERY_TIERS[hero.mastery.tier]?.color || gamingColors.electric.cyan}
-              trailColor="rgba(255, 255, 255, 0.1)"
-              showInfo={false}
-              style={{ width: '80px' }}
-            />
-            <div className="text-xs text-gray-400 mt-1">
-              {hero.mastery.progress}% → {hero.nextRequirements?.nextTier || 'Max'}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-1">
+              <Text strong className="text-white text-sm truncate pr-1">
+                {hero.name}
+              </Text>
+              <Tag 
+                color={masteryBadge.color}
+                style={{ 
+                  fontSize: '9px', 
+                  padding: '0 4px',
+                  lineHeight: '14px',
+                  margin: 0
+                }}
+              >
+                {masteryBadge.emoji}
+              </Tag>
+              {hero.performance.tier && (
+                <span className={`text-xs font-bold ${getPerformanceTierColor(hero.performance.tier)}`}>
+                  {hero.performance.tier}
+                </span>
+              )}
+            </div>
+            
+            <div className="text-xs text-gray-400 space-x-1">
+              <span>{hero.games}g</span>
+              <span className="text-gray-500">•</span>
+              <span className={winrate >= 60 ? 'text-green-400' : winrate >= 50 ? 'text-yellow-400' : 'text-red-400'}>
+                {winrate}%
+              </span>
+              <span className="text-gray-500">•</span>
+              <span className={kda >= 2.5 ? 'text-green-400' : kda >= 1.5 ? 'text-yellow-400' : 'text-red-400'}>
+                {kda} KDA
+              </span>
             </div>
           </div>
+        </div>
 
-          {/* Streak Indicator */}
-          {hero.streakData.streakType !== 'none' && (
-            <Tag 
-              style={{ 
-                backgroundColor: streakDisplay.bgColor,
-                borderColor: streakDisplay.color,
-                color: streakDisplay.color,
-                fontSize: '10px',
-                padding: '0 4px'
-              }}
-            >
-              {streakDisplay.emoji} {streakDisplay.text}
-            </Tag>
+        {/* Right: Performance Metrics */}
+        <div className="text-right text-xs space-y-1">
+          {hero.performance.avgGPM > 0 && (
+            <div className={`${hero.performance.avgGPM > 500 ? 'text-green-400' : hero.performance.avgGPM > 350 ? 'text-yellow-400' : 'text-gray-400'}`}>
+              {hero.performance.avgGPM} GPM
+            </div>
           )}
-
-          {/* Achievement Count */}
-          {hero.achievements.length > 0 && (
-            <div className="text-xs text-yellow-400 mt-1">
-              <StarOutlined /> {hero.achievements.length}
+          {hero.performance.avgXPM > 0 && (
+            <div className={`${hero.performance.avgXPM > 600 ? 'text-green-400' : hero.performance.avgXPM > 450 ? 'text-yellow-400' : 'text-gray-400'}`}>
+              {hero.performance.avgXPM} XPM
+            </div>
+          )}
+          {hero.performance.avgCSPerMin > 0 && (
+            <div className="text-gray-400">
+              {hero.performance.avgCSPerMin}/min CS
             </div>
           )}
         </div>
@@ -354,24 +354,21 @@ const HeroMasteryCard = ({ hero, onClick }) => {
   );
 };
 
-// Hero Detail View Component
+// Enhanced Hero Detail View
 const HeroDetailView = ({ hero }) => {
   const { recentMatches } = useData();
   const masteryBadge = getMasteryBadge(hero.mastery.tier);
-  const achievementCompletion = calculateAchievementCompletion(hero.achievements);
   
   // Calculate detailed hero stats
   const heroMatches = recentMatches?.filter(match => match.hero_id === hero.hero_id) || [];
-  const avgGPM = hero.games > 0 ? Math.round((hero.sum_gold_per_min || 0) / hero.games) : 0;
-  const avgXPM = hero.games > 0 ? Math.round((hero.sum_xp_per_min || 0) / hero.games) : 0;
-  const avgLastHits = hero.games > 0 ? Math.round((hero.sum_last_hits || 0) / hero.games) : 0;
-  const avgHeroDamage = hero.games > 0 ? Math.round((hero.sum_hero_damage || 0) / hero.games) : 0;
+  const avgHeroDamage = hero.performance.avgHeroDamage;
   const avgTowerDamage = hero.games > 0 ? Math.round((hero.sum_tower_damage || 0) / hero.games) : 0;
   const avgHeroHealing = hero.games > 0 ? Math.round((hero.sum_hero_healing || 0) / hero.games) : 0;
   
-  // Calculate role analysis based on performance patterns
+  // Role analysis based on performance patterns
   const getRoleAnalysis = () => {
-    if (avgGPM > 500 && avgLastHits > 200) {
+    const { avgGPM, avgCSPerMin } = hero.performance;
+    if (avgGPM > 500 && avgCSPerMin > 5) {
       return { role: 'Core', confidence: 'High', description: 'Strong farming patterns and gold income' };
     } else if (avgHeroHealing > 1000 || (avgGPM < 350 && hero.mastery.stats.kda > 2.5)) {
       return { role: 'Support', confidence: 'High', description: 'High healing/assist focus with lower farm priority' };
@@ -394,16 +391,16 @@ const HeroDetailView = ({ hero }) => {
       insights.push({ type: 'improvement', text: 'Focus on positioning and death reduction' });
     }
     
-    if (avgGPM > 600) {
+    if (hero.performance.avgGPM > 600) {
       insights.push({ type: 'strength', text: 'Outstanding farming efficiency' });
-    } else if (avgGPM < 300) {
-      insights.push({ type: 'improvement', text: 'Work on last hitting and farm patterns' });
+    } else if (hero.performance.avgGPM < 300) {
+      insights.push({ type: 'improvement', text: 'Work on last hitting and farm optimization' });
     }
     
     if (hero.mastery.stats.winrate > 65) {
-      insights.push({ type: 'strength', text: 'Dominant win rate shows mastery' });
+      insights.push({ type: 'strength', text: 'Dominant win rate shows strong mastery' });
     } else if (hero.mastery.stats.winrate < 45) {
-      insights.push({ type: 'improvement', text: 'Consider reviewing builds and gameplay decisions' });
+      insights.push({ type: 'improvement', text: 'Review builds and strategic decision making' });
     }
     
     return insights;
@@ -417,18 +414,18 @@ const HeroDetailView = ({ hero }) => {
       <div className="text-center">
         <div className="text-4xl mb-2">{masteryBadge.emoji}</div>
         <Title level={4} className="text-white mb-1">
-          {masteryBadge.name} Mastery
+          {masteryBadge.name} Mastery • Grade {hero.performance.tier}
         </Title>
         <Text type="secondary">
-          Level {hero.mastery.level} • {hero.mastery.progress}% to next tier
+          Level {hero.mastery.level} • {hero.mastery.progress}% progress
         </Text>
       </div>
 
       {/* Enhanced Stats Grid */}
-      <div className="grid grid-cols-3 gap-4 text-center">
+      <div className="grid grid-cols-4 gap-4 text-center">
         <div>
           <div className="text-2xl font-bold text-white">{hero.games}</div>
-          <div className="text-xs text-gray-400">Games Played</div>
+          <div className="text-xs text-gray-400">Games</div>
         </div>
         <div>
           <div className="text-2xl font-bold text-green-400">{hero.mastery.stats.winrate}%</div>
@@ -436,30 +433,30 @@ const HeroDetailView = ({ hero }) => {
         </div>
         <div>
           <div className="text-2xl font-bold text-cyan-400">{hero.mastery.stats.kda}</div>
-          <div className="text-xs text-gray-400">KDA Ratio</div>
+          <div className="text-xs text-gray-400">KDA</div>
+        </div>
+        <div>
+          <div className={`text-2xl font-bold ${hero.performance.avgGPM > 500 ? 'text-green-400' : 'text-yellow-400'}`}>
+            {hero.performance.avgGPM}
+          </div>
+          <div className="text-xs text-gray-400">Avg GPM</div>
         </div>
       </div>
 
-      {/* Detailed Performance Metrics */}
+      {/* Performance Metrics */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-3">
-          <Title level={5} className="text-white mb-2">Performance Metrics</Title>
+          <Title level={5} className="text-white mb-2">Farm & Economy</Title>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <Text className="text-gray-300">Avg GPM:</Text>
-              <Text className={`${avgGPM > 500 ? 'text-green-400' : avgGPM > 350 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {avgGPM}
+              <Text className="text-gray-300">XPM:</Text>
+              <Text className={`${hero.performance.avgXPM > 600 ? 'text-green-400' : hero.performance.avgXPM > 450 ? 'text-yellow-400' : 'text-red-400'}`}>
+                {hero.performance.avgXPM}
               </Text>
             </div>
             <div className="flex justify-between">
-              <Text className="text-gray-300">Avg XPM:</Text>
-              <Text className={`${avgXPM > 600 ? 'text-green-400' : avgXPM > 450 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {avgXPM}
-              </Text>
-            </div>
-            <div className="flex justify-between">
-              <Text className="text-gray-300">Avg Last Hits:</Text>
-              <Text className="text-white">{avgLastHits}</Text>
+              <Text className="text-gray-300">CS/Min:</Text>
+              <Text className="text-white">{hero.performance.avgCSPerMin}</Text>
             </div>
             <div className="flex justify-between">
               <Text className="text-gray-300">Hero Damage:</Text>
@@ -500,18 +497,6 @@ const HeroDetailView = ({ hero }) => {
         </div>
       )}
 
-      {/* Next Requirements */}
-      {hero.nextRequirements && !hero.nextRequirements.isMaxTier && (
-        <div className="p-4 rounded-lg" style={{ backgroundColor: 'rgba(0, 217, 255, 0.1)' }}>
-          <Title level={5} className="text-cyan-400 mb-2">
-            Next Milestone: {MASTERY_TIERS[hero.mastery.nextTier]?.name} Mastery
-          </Title>
-          <Text className="text-white">
-            {hero.nextRequirements.message}
-          </Text>
-        </div>
-      )}
-
       {/* Recent Form */}
       <div>
         <Title level={5} className="text-white mb-2">Recent Performance</Title>
@@ -527,29 +512,6 @@ const HeroDetailView = ({ hero }) => {
               {hero.streakData.streakType === 'win' ? '🔥' : '🧊'} {hero.streakData.currentStreak} {hero.streakData.streakType}s
             </Tag>
           )}
-        </div>
-      </div>
-
-      {/* Achievements */}
-      <div>
-        <Title level={5} className="text-white mb-2">
-          Achievements ({achievementCompletion.earned}/{achievementCompletion.total})
-        </Title>
-        <Progress 
-          percent={achievementCompletion.percentage} 
-          strokeColor={gamingColors.electric.yellow}
-          className="mb-3"
-        />
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          {hero.achievements.map((achievement, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <span style={{ color: achievement.color }}>{achievement.emoji}</span>
-              <Text className="text-white text-sm">{achievement.name}</Text>
-              <Text type="secondary" className="text-xs">
-                {achievement.description}
-              </Text>
-            </div>
-          ))}
         </div>
       </div>
     </div>
