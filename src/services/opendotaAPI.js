@@ -55,6 +55,13 @@ class OpenDotaAPIService {
       });
 
       if (!response.ok) {
+        // Handle specific status codes more gracefully
+        if (response.status === 404) {
+          // 404s are common for logs endpoints (unparsed matches) - use info level
+          const logLevel = endpoint.includes('/logs') ? 'info' : 'warn';
+          console[logLevel](`[OpenDota API] Endpoint not found (404): ${endpoint}`);
+          return null; // Return null for missing endpoints instead of throwing
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -145,8 +152,9 @@ class OpenDotaAPIService {
   async getMatchLogs(matchId) {
     try {
       return await this.makeRequest(`/matches/${matchId}/logs`);
-    } catch (error) {
-      console.warn(`[OpenDota API] Logs not available for match ${matchId}:`, error.message);
+    } catch (ERROR) {
+      // Logs are only available for parsed matches - this is expected for many matches
+      console.info(`[OpenDota API] Match logs not available for match ${matchId} (likely unparsed match) - using fallback ward data`);
       return null;
     }
   }
@@ -193,16 +201,69 @@ class OpenDotaAPIService {
 
     const batchResults = await this.batchRequests(additionalRequests);
     
+    // Process results
+    const resultMap = Object.fromEntries(
+      batchResults
+        .filter(result => result.success)
+        .map(result => [result.key, result.data])
+    );
+
+    // Enhance userPlayer with logs data if available
+    let enhancedUserPlayer = { ...userPlayer };
+    if (resultMap.logs && Array.isArray(resultMap.logs)) {
+      // Extract ward placement logs for this specific player
+      const playerSlot = userPlayer.player_slot;
+      
+      // Observer wards
+      enhancedUserPlayer.obs_log = resultMap.logs
+        .filter(log => 
+          log.type === 'DOTA_COMBATLOG_PURCHASE' && 
+          log.key === 'ward_observer' &&
+          log.player_slot === playerSlot
+        )
+        .map(log => ({
+          time: log.time,
+          x: log.x || null,
+          y: log.y || null
+        }));
+      
+      // Sentry wards
+      enhancedUserPlayer.sen_log = resultMap.logs
+        .filter(log => 
+          log.type === 'DOTA_COMBATLOG_PURCHASE' && 
+          log.key === 'ward_sentry' &&
+          log.player_slot === playerSlot
+        )
+        .map(log => ({
+          time: log.time,
+          x: log.x || null,
+          y: log.y || null
+        }));
+
+      console.log(`[OpenDota API] Enhanced player with ward logs:`, {
+        accountId: userPlayer.account_id,
+        obsWards: enhancedUserPlayer.obs_log?.length || 0,
+        senWards: enhancedUserPlayer.sen_log?.length || 0
+      });
+    } else {
+      // If logs are not available, initialize empty arrays for consistency
+      // The analysis will use basic ward counts from the player data instead
+      enhancedUserPlayer.obs_log = [];
+      enhancedUserPlayer.sen_log = [];
+      
+      console.log(`[OpenDota API] Match logs not available - using basic ward statistics:`, {
+        accountId: userPlayer.account_id,
+        obsPlaced: userPlayer.obs_placed || 0,
+        senPlaced: userPlayer.sen_placed || 0
+      });
+    }
+
     // Compile results
     const analysisData = {
       match: matchData,
-      userPlayer,
+      userPlayer: enhancedUserPlayer,
       heroId,
-      ...Object.fromEntries(
-        batchResults
-          .filter(result => result.success)
-          .map(result => [result.key, result.data])
-      )
+      ...resultMap
     };
 
     // Add failed requests info

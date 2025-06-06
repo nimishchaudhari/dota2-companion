@@ -423,7 +423,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
     return events.sort((a, b) => a.time - b.time);
   }, [matchData]);
 
-  const PlayerRow = ({ player, isCurrentPlayer }) => {
+  const PlayerRow = React.memo(({ player, isCurrentPlayer, heroIcon }) => {
     const kda = ((player.kills + player.assists) / Math.max(player.deaths, 1)).toFixed(2);
     const kdaGrade = kda >= 5 ? 'S' : kda >= 4 ? 'A' : kda >= 3 ? 'B' : kda >= 2 ? 'C' : 'D';
     const gradeStyle = getGradeColor(kdaGrade);
@@ -438,7 +438,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
       <Space size="middle">
         <Avatar 
           size={40} 
-          src={player.hero_id ? getHeroIconById(player.hero_id, matchData.heroStats) : null}
+          src={heroIcon}
         >
           {player.hero_name?.substring(0, 2)}
         </Avatar>
@@ -503,7 +503,7 @@ const EnhancedOverviewTab = ({ matchData, playerData, teamData }) => {
       </Space>
       </div>
     );
-  };
+  });
 
   return (
     <Row gutter={[16, 16]}>
@@ -1425,25 +1425,31 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
     }
     return timings;
   }, [playerData]);
+
+  const itemSlots = useMemo(() => {
+    if (!playerData) return [];
+    return [
+      playerData.item_0,
+      playerData.item_1,
+      playerData.item_2,
+      playerData.item_3,
+      playerData.item_4,
+      playerData.item_5,
+    ];
+  }, [playerData]);
+
+  const backpackItems = useMemo(() => {
+    if (!playerData) return [];
+    return [
+      playerData.backpack_0,
+      playerData.backpack_1,
+      playerData.backpack_2,
+    ];
+  }, [playerData]);
   
   if (!playerData) {
     return <Alert message="Player data not found in this match" type="warning" />;
   }
-
-  const itemSlots = [
-    playerData.item_0,
-    playerData.item_1,
-    playerData.item_2,
-    playerData.item_3,
-    playerData.item_4,
-    playerData.item_5,
-  ];
-
-  const backpackItems = [
-    playerData.backpack_0,
-    playerData.backpack_1,
-    playerData.backpack_2,
-  ];
   
   // Net worth line chart config
   const netWorthChartConfig = {
@@ -1477,7 +1483,7 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
     label: {
       type: 'inner',
       offset: '-30%',
-      content: '{percentage}',
+      content: (data) => `${((data.value / goldSources.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1)}%`,
       style: {
         fontSize: 14,
         textAlign: 'center',
@@ -1880,16 +1886,19 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
     }
     return deaths.sort((a, b) => b.kills - a.kills);
   }, [playerData]);
+
+  const damageData = useMemo(() => {
+    if (!playerData) return [];
+    return [
+      { type: 'Hero Damage', value: playerData.hero_damage || 0 },
+      { type: 'Tower Damage', value: playerData.tower_damage || 0 },
+      { type: 'Creep Damage', value: (playerData.damage || 0) - (playerData.hero_damage || 0) - (playerData.tower_damage || 0) },
+    ];
+  }, [playerData]);
   
   if (!playerData) {
     return <Alert message="Player data not found in this match" type="warning" />;
   }
-
-  const damageData = [
-    { type: 'Hero Damage', value: playerData.hero_damage || 0 },
-    { type: 'Tower Damage', value: playerData.tower_damage || 0 },
-    { type: 'Creep Damage', value: (playerData.damage || 0) - (playerData.hero_damage || 0) - (playerData.tower_damage || 0) },
-  ];
 
   const damageConfig = {
     data: damageData.filter(d => d.value > 0),
@@ -1899,7 +1908,11 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
     label: {
       type: 'inner',
       offset: '-30%',
-      content: '{percentage}',
+      content: (data) => {
+        const filteredData = damageData.filter(d => d.value > 0);
+        const total = filteredData.reduce((sum, item) => sum + item.value, 0);
+        return `${((data.value / total) * 100).toFixed(1)}%`;
+      },
       style: {
         fontSize: 14,
         textAlign: 'center',
@@ -2464,6 +2477,19 @@ const VisionMapControlTab = ({ matchData, playerData, analysisData }) => {
 // Enhanced Improvement Insights Tab Component
 const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading, analysisData }) => {
   
+  // Extract item slots from player data for item build analysis
+  const itemSlots = useMemo(() => {
+    if (!playerData) return [];
+    return [
+      playerData.item_0,
+      playerData.item_1,
+      playerData.item_2,
+      playerData.item_3,
+      playerData.item_4,
+      playerData.item_5,
+    ];
+  }, [playerData]);
+  
   // Use comprehensive insights from analysis service instead of hardcoded thresholds  
   const insights = useMemo(() => {
     // Use insights from comprehensive analysis service if available
@@ -2731,7 +2757,7 @@ const ImprovementInsightsTab = ({ matchData, playerData, analysisLoading, analys
             <div className="bg-gray-900/50 p-4 rounded-lg border border-cyan-500/30">
               <Text className="text-cyan-400 font-semibold block mb-2">Item Build Analysis</Text>
               <div className="flex space-x-2 mb-2">
-                {[playerData.item_0, playerData.item_1, playerData.item_2].filter(Boolean).slice(0, 3).map((itemId, idx) => (
+                {itemSlots.slice(0, 3).filter(Boolean).map((itemId, idx) => (
                   <img 
                     key={idx}
                     src={getItemIconById(itemId)} 
