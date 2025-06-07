@@ -3,8 +3,8 @@
  * Provides easy access to hero icons, ability icons, items, runes, and facets
  */
 
-// Debug logging configuration
-const DEBUG_ASSETS = true;
+// Debug logging configuration - enable in development
+const DEBUG_ASSETS = import.meta.env.DEV || false;
 const debugLog = (message, data = null) => {
   if (DEBUG_ASSETS) {
     if (data !== null) {
@@ -38,22 +38,21 @@ const ASSET_PATHS = {
 export const getHeroIcon = (heroName, animated = false) => {
   debugLog(`Getting hero icon for: "${heroName}", animated: ${animated}`);
   
-  try {
-    // Use public asset path for Vite production builds
-    const assetPath = `/assets/heroes/${animated ? 'animated' : 'icons'}/${heroName}.${animated ? 'webm' : 'png'}`;
-    debugLog(`Generated hero asset URL: ${assetPath}`);
+  if (!heroName) {
+    debugLog('No hero name provided, using pudge as fallback');
+    heroName = 'pudge'; // Use pudge as a reliable fallback
+  }
+  
+  if (animated) {
+    // For animated heroes, use webm format in animated directory
+    const assetPath = `/assets/heroes/animated/npc_dota_hero_${heroName}.webm`;
+    debugLog(`Generated animated hero asset URL: ${assetPath}`);
     return assetPath;
-  } catch (error) {
-    debugLog(`Error generating hero asset URL for "${heroName}":`, error);
-    // Fallback to default hero icon
-    try {
-      const fallbackPath = `/assets/heroes/icons/default.png`;
-      debugLog(`Using fallback hero asset URL: ${fallbackPath}`);
-      return fallbackPath;
-    } catch (FALLBACK_ERROR) {
-      console.warn(`[ASSET WARNING] Failed to generate hero asset URL for "${heroName}":`, error);
-      return '';
-    }
+  } else {
+    // For static heroes, try PNG first, then fallback to WebP
+    const pngPath = `/assets/heroes/icons/${heroName}.png`;
+    debugLog(`Generated hero asset URL (PNG): ${pngPath}`);
+    return pngPath;
   }
 };
 
@@ -153,6 +152,33 @@ export const getFacetIcon = (facetName) => {
 };
 
 /**
+ * Get hero icon with format fallback support
+ * @param {string} heroName - Hero name
+ * @param {boolean} animated - Whether to get animated version
+ * @param {string} preferredFormat - Preferred format ('png' or 'webp')
+ * @returns {string} Asset path with format fallback
+ */
+export const getHeroIconWithFallback = (heroName, animated = false, preferredFormat = 'png') => {
+  debugLog(`Getting hero icon with fallback for: "${heroName}", animated: ${animated}, format: ${preferredFormat}`);
+  
+  if (!heroName) {
+    debugLog('No hero name provided, using pudge as fallback');
+    heroName = 'pudge';
+  }
+  
+  if (animated) {
+    return `/assets/heroes/animated/npc_dota_hero_${heroName}.webm`;
+  }
+  
+  // Try preferred format first
+  if (preferredFormat === 'png') {
+    return `/assets/heroes/icons/${heroName}.png`;
+  } else {
+    return `/assets/heroes/icons/${heroName}.webp`;
+  }
+};
+
+/**
  * Get hero icon by hero ID (for OpenDota API integration)
  * @param {number} heroId - Hero ID from OpenDota API
  * @param {Object} heroesData - Heroes data from OpenDota API
@@ -166,7 +192,7 @@ export const getHeroIconById = (heroId, heroesData, animated = false) => {
   if (!hero) {
     debugLog(`Hero not found in data for ID: ${heroId}`);
     console.warn(`[ASSET WARNING] Hero not found for ID: ${heroId}`);
-    return getHeroIcon('unknown', animated);
+    return getHeroIcon('pudge', animated); // Use pudge as reliable fallback
   }
   
   debugLog(`Found hero:`, { id: hero.id, name: hero.name, localized_name: hero.localized_name });
@@ -659,8 +685,9 @@ export const getRankIcon = (rankTier) => {
   debugLog(`Getting rank icon for tier: ${rankTier}`);
   
   if (!rankTier || rankTier < 1) {
-    debugLog('No rank tier provided, using default tier1');
-    return getItemIcon('tier1_token');
+    debugLog('No rank tier provided, using default ranking badge');
+    // Use a generic ranking badge or return empty string if no tier tokens exist
+    return ''; // Return empty to prevent 404s if tier tokens don't exist
   }
   
   // Convert OpenDota rank tier (1-80) to our tier system (1-5)
@@ -678,7 +705,14 @@ export const getRankIcon = (rankTier) => {
   
   const tierName = `tier${tierLevel}_token`;
   debugLog(`Mapped rank tier ${rankTier} to ${tierName}`);
-  return getItemIcon(tierName);
+  
+  // Try to get the tier icon, fallback to empty string if not found
+  try {
+    return getItemIcon(tierName);
+  } catch (_ERROR) {
+    debugLog(`Tier token ${tierName} not found, returning empty string`);
+    return '';
+  }
 };
 
 /**

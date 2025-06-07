@@ -1553,7 +1553,11 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
     label: {
       type: 'inner',
       offset: '-30%',
-      content: (data) => `${((data.value / goldSources.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1)}%`,
+      content: (data) => {
+        const filteredData = goldSources.filter(d => d.value > 0);
+        const total = filteredData.reduce((sum, item) => sum + item.value, 0);
+        return `${((data.value / total) * 100).toFixed(1)}%`;
+      },
       style: {
         fontSize: 14,
         textAlign: 'center',
