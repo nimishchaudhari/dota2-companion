@@ -21,6 +21,12 @@ import { AuthContext } from '../../contexts/AuthContext.js';
 import { useContext } from 'react';
 import WidgetWrapper from './WidgetWrapper.jsx';
 import WidgetLibrary, { WIDGET_DEFINITIONS } from './WidgetLibrary.jsx';
+import useResponsiveWidget from '../../hooks/useResponsiveWidget.js';
+import { 
+  generateResponsiveLayouts, 
+  RESPONSIVE_WIDGET_CONFIGS,
+  getPerformanceConfig 
+} from '../../utils/responsiveWidgets.js';
 
 // Import all widgets
 import SessionTrackerWidget from './widgets/SessionTrackerWidget.jsx';
@@ -41,7 +47,7 @@ const WIDGET_COMPONENTS = {
   'performance-metrics': PerformanceMetricsWidget,
 };
 
-// Default dashboard layouts for different breakpoints
+// Mobile-optimized dashboard layouts for different breakpoints
 const defaultLayouts = {
   lg: [
     { i: 'session-tracker', x: 0, y: 0, w: 4, h: 5, minW: 3, minH: 4 },
@@ -51,25 +57,36 @@ const defaultLayouts = {
     { i: 'performance-metrics', x: 0, y: 11, w: 12, h: 4, minW: 8, minH: 3 }
   ],
   md: [
-    { i: 'session-tracker', x: 0, y: 0, w: 5, h: 5, minW: 3, minH: 4 },
-    { i: 'mmr-chart', x: 5, y: 0, w: 5, h: 5, minW: 5, minH: 4 },
-    { i: 'hero-stats', x: 0, y: 5, w: 5, h: 5, minW: 3, minH: 4 },
-    { i: 'recent-matches', x: 5, y: 5, w: 5, h: 5, minW: 3, minH: 4 },
-    { i: 'performance-metrics', x: 0, y: 10, w: 10, h: 4, minW: 6, minH: 3 }
+    // Tablet layout - optimized for touch interaction
+    { i: 'session-tracker', x: 0, y: 0, w: 6, h: 4, minW: 4, minH: 3 },
+    { i: 'mmr-chart', x: 6, y: 0, w: 6, h: 4, minW: 4, minH: 3 },
+    { i: 'hero-stats', x: 0, y: 4, w: 6, h: 5, minW: 4, minH: 4 },
+    { i: 'recent-matches', x: 6, y: 4, w: 6, h: 5, minW: 4, minH: 4 },
+    { i: 'performance-metrics', x: 0, y: 9, w: 12, h: 3, minW: 6, minH: 3 }
   ],
   sm: [
-    { i: 'session-tracker', x: 0, y: 0, w: 6, h: 5, minW: 4, minH: 4 },
-    { i: 'mmr-chart', x: 0, y: 5, w: 6, h: 5, minW: 4, minH: 4 },
-    { i: 'hero-stats', x: 0, y: 10, w: 6, h: 5, minW: 4, minH: 4 },
-    { i: 'recent-matches', x: 0, y: 15, w: 6, h: 5, minW: 4, minH: 4 },
-    { i: 'performance-metrics', x: 0, y: 20, w: 6, h: 4, minW: 4, minH: 3 }
+    // Small tablet/large phone layout - single column with better spacing
+    { i: 'session-tracker', x: 0, y: 0, w: 6, h: 3, minW: 6, minH: 3 },
+    { i: 'mmr-chart', x: 0, y: 3, w: 6, h: 4, minW: 6, minH: 3 },
+    { i: 'hero-stats', x: 0, y: 7, w: 6, h: 4, minW: 6, minH: 3 },
+    { i: 'recent-matches', x: 0, y: 11, w: 6, h: 4, minW: 6, minH: 3 },
+    { i: 'performance-metrics', x: 0, y: 15, w: 6, h: 3, minW: 6, minH: 3 }
   ],
   xs: [
-    { i: 'session-tracker', x: 0, y: 0, w: 4, h: 5, minW: 4, minH: 4 },
-    { i: 'mmr-chart', x: 0, y: 5, w: 4, h: 5, minW: 4, minH: 4 },
-    { i: 'hero-stats', x: 0, y: 10, w: 4, h: 5, minW: 4, minH: 4 },
-    { i: 'recent-matches', x: 0, y: 15, w: 4, h: 5, minW: 4, minH: 4 },
-    { i: 'performance-metrics', x: 0, y: 20, w: 4, h: 4, minW: 4, minH: 3 }
+    // Mobile layout - optimized for single-handed use with proper touch spacing
+    { i: 'session-tracker', x: 0, y: 0, w: 4, h: 3, minW: 4, minH: 3 },
+    { i: 'mmr-chart', x: 0, y: 3, w: 4, h: 4, minW: 4, minH: 3 },
+    { i: 'hero-stats', x: 0, y: 7, w: 4, h: 4, minW: 4, minH: 3 },
+    { i: 'recent-matches', x: 0, y: 11, w: 4, h: 4, minW: 4, minH: 3 },
+    { i: 'performance-metrics', x: 0, y: 15, w: 4, h: 3, minW: 4, minH: 3 }
+  ],
+  xxs: [
+    // Ultra-small mobile layout for very small screens
+    { i: 'session-tracker', x: 0, y: 0, w: 2, h: 3, minW: 2, minH: 3 },
+    { i: 'mmr-chart', x: 0, y: 3, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'hero-stats', x: 0, y: 7, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'recent-matches', x: 0, y: 11, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'performance-metrics', x: 0, y: 15, w: 2, h: 3, minW: 2, minH: 3 }
   ]
 };
 
@@ -95,10 +112,20 @@ const AntDashboard = ({ onMatchClick }) => {
   const { loading, recentMatches, winLoss, heroStats, ratings } = useData();
   const { message } = App.useApp();
   
+  // Responsive system integration
+  const responsive = useResponsiveWidget('dashboard');
+  const { device, windowSize, dimensions, utils } = responsive;
+  
   // Dashboard state
   const [layouts, setLayouts] = useState(() => {
     const saved = localStorage.getItem('dashboard-layouts');
-    return saved ? JSON.parse(saved) : defaultLayouts;
+    if (saved) return JSON.parse(saved);
+    
+    // Generate responsive layouts based on current device
+    const responsiveLayoutData = generateResponsiveLayouts(device, windowSize, 
+      ['session-tracker', 'mmr-chart', 'hero-stats', 'recent-matches', 'performance-metrics']
+    );
+    return responsiveLayoutData.layouts;
   });
   
   const [activeWidgets, setActiveWidgets] = useState(() => {
@@ -127,6 +154,24 @@ const AntDashboard = ({ onMatchClick }) => {
     setActiveWidgets(widgets);
     localStorage.setItem('dashboard-widgets', JSON.stringify(widgets));
   }, []);
+
+  // Regenerate layouts when device characteristics change
+  useEffect(() => {
+    const responsiveLayoutData = generateResponsiveLayouts(device, windowSize, activeWidgets);
+    
+    // Only update if this is a significant device change
+    const shouldUpdate = 
+      !layouts[device.type] || // No layout for current device type
+      Object.keys(layouts).length === 0 || // No layouts at all
+      (device.type === 'mobile' && Object.keys(layouts).some(key => key !== 'mobile')); // Switched to mobile
+    
+    if (shouldUpdate) {
+      setLayouts(prev => ({
+        ...prev,
+        ...responsiveLayoutData.layouts
+      }));
+    }
+  }, [device.type, device.orientation, windowSize.width, activeWidgets, device, windowSize, layouts]);
 
   // Handle layout change
   const handleLayoutChange = useCallback((layout, allLayouts) => {
@@ -338,18 +383,35 @@ const AntDashboard = ({ onMatchClick }) => {
             className="h-full"
           >
             <ResponsiveGridLayout
-              className="layout dashboard-grid"
+              className={`layout dashboard-grid ${utils.getResponsiveClass()}`}
               layouts={layouts}
-              breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-              cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-              rowHeight={60}
+              breakpoints={{ 
+                lg: 1200, 
+                md: 996, 
+                sm: 768, 
+                xs: 480, 
+                xxs: 0 
+              }}
+              cols={{ 
+                lg: 12, 
+                md: device.type === 'tablet' && device.orientation === 'portrait' ? 6 : 12, 
+                sm: 6, 
+                xs: 4, 
+                xxs: 2 
+              }}
+              rowHeight={dimensions.dynamicSize.md / 4} // Intelligent row height based on content
               onLayoutChange={handleLayoutChange}
               onBreakpointChange={handleBreakpointChange}
-              draggableHandle=".widget-drag-handle"
-              useCSSTransforms={true}
+              draggableHandle={device.touchCapable ? null : ".widget-drag-handle"} // Disable drag on touch devices
+              useCSSTransforms={getPerformanceConfig(device).animations}
               compactType="vertical"
               preventCollision={false}
-              margin={[16, 16]}
+              margin={[utils.getSpacing('normal'), utils.getSpacing('normal')]}
+              containerPadding={[utils.getSpacing('compact'), utils.getSpacing('compact')]}
+              resizeHandles={device.type === 'mobile' ? [] : ['se']} // No resize on mobile
+              allowOverlap={false}
+              isDraggable={!device.touchCapable} // Disable dragging on touch devices
+              isResizable={device.type !== 'mobile'} // Disable resizing on mobile
             >
               {activeWidgetConfigs.map(({ id, component: WidgetComponent, config }) => (
                 <div key={id} className="dashboard-widget">

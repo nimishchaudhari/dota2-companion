@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { 
   Layout, Card, Spin, Typography, Space, Tag, Row, Col, Statistic, 
   Progress, Tabs, List, Avatar, Badge, Divider, Timeline, Alert,
-  Breadcrumb, Button, Tooltip, Table, Empty, Rate, Segmented
+  Breadcrumb, Button, Tooltip, Table, Empty, Rate, Segmented, Drawer
 } from 'antd';
 import { 
   ArrowLeftOutlined, TrophyOutlined, CloseCircleOutlined,
@@ -24,6 +24,11 @@ import {
   getHeroIconById,
   getItemIconSafe
 } from '../../utils/assetHelpers.js';
+import useResponsiveWidget from '../../hooks/useResponsiveWidget.js';
+import { 
+  getResponsiveChartConfig, 
+  getResponsiveTableConfig 
+} from '../../utils/responsiveWidgets.js';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -33,6 +38,10 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
   const [matchData, setMatchData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  
+  // Mobile responsiveness integration
+  const responsive = useResponsiveWidget('match-analysis');
+  const { device, windowSize, utils, content } = responsive;
 
   useEffect(() => {
     const fetchMatchData = async () => {
@@ -181,85 +190,116 @@ export const MatchAnalysis = ({ matchId, onBack }) => {
           </div>
         </Card>
 
-        {/* Navigation Tabs */}
-        <Tabs 
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          type="card"
-          className="match-analysis-tabs"
-          items={[
-            {
-              key: 'overview',
-              label: (
-                <span>
-                  <DashboardOutlined className="mr-2" />
-                  Overview
-                </span>
-              ),
-              children: <EnhancedOverviewTab matchData={matchData} playerData={playerData} teamData={teamData} />
-            },
-            {
-              key: 'performance',
-              label: (
-                <span>
-                  <FireOutlined className="mr-2" />
-                  Performance
-                </span>
-              ),
-              children: <EnhancedPerformanceTab matchData={matchData} playerData={playerData} />
-            },
-            {
-              key: 'laning',
-              label: (
-                <span>
-                  <RiseOutlined className="mr-2" />
-                  Laning Phase
-                </span>
-              ),
-              children: <LaningPhaseTab playerData={playerData} />
-            },
-            {
-              key: 'economy',
-              label: (
-                <span>
-                  <ShoppingOutlined className="mr-2" />
-                  Economy & Items
-                </span>
-              ),
-              children: <EconomyResourcesTab matchData={matchData} playerData={playerData} />
-            },
-            {
-              key: 'combat',
-              label: (
-                <span>
-                  <AimOutlined className="mr-2" />
-                  Combat Intel
-                </span>
-              ),
-              children: <CombatIntelligenceTab matchData={matchData} playerData={playerData} teamData={teamData} />
-            },
-            {
-              key: 'vision',
-              label: (
-                <span>
-                  <EyeOutlined className="mr-2" />
-                  Vision & Map
-                </span>
-              ),
-              children: <VisionMapControlTab matchData={matchData} playerData={playerData} />
-            },
-            {
-              key: 'insights',
-              label: (
-                <span>
-                  <BulbOutlined className="mr-2" />
-                  Insights
-                </span>
-              ),
-              children: <ImprovementInsightsTab matchData={matchData} playerData={playerData} />
-            }
-          ]}
-        />
+        {/* Mobile Tab Navigation */}
+        {device.type === 'mobile' ? (
+          <div className="mobile-tab-navigation">
+            <Segmented
+              value={activeTab}
+              onChange={setActiveTab}
+              options={[
+                { label: 'Overview', value: 'overview', icon: <DashboardOutlined /> },
+                { label: 'Performance', value: 'performance', icon: <FireOutlined /> },
+                { label: 'Laning', value: 'laning', icon: <RiseOutlined /> },
+                { label: 'Economy', value: 'economy', icon: <ShoppingOutlined /> },
+                { label: 'Combat', value: 'combat', icon: <AimOutlined /> },
+                { label: 'Vision', value: 'vision', icon: <EyeOutlined /> },
+                { label: 'Insights', value: 'insights', icon: <BulbOutlined /> }
+              ]}
+              className="w-full mb-4 overflow-x-auto"
+              size="large"
+            />
+            <div className="mobile-tab-content">
+              {activeTab === 'overview' && <EnhancedOverviewTab matchData={matchData} playerData={playerData} teamData={teamData} responsive={responsive} />}
+              {activeTab === 'performance' && <EnhancedPerformanceTab matchData={matchData} playerData={playerData} responsive={responsive} />}
+              {activeTab === 'laning' && <LaningPhaseTab playerData={playerData} responsive={responsive} />}
+              {activeTab === 'economy' && <EconomyResourcesTab matchData={matchData} playerData={playerData} responsive={responsive} />}
+              {activeTab === 'combat' && <CombatIntelligenceTab matchData={matchData} playerData={playerData} teamData={teamData} responsive={responsive} />}
+              {activeTab === 'vision' && <VisionMapControlTab matchData={matchData} playerData={playerData} responsive={responsive} />}
+              {activeTab === 'insights' && <ImprovementInsightsTab matchData={matchData} playerData={playerData} responsive={responsive} />}
+            </div>
+          </div>
+        ) : (
+          /* Desktop Tab Navigation */
+          <Tabs 
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            type="card"
+            className="match-analysis-tabs"
+            size={device.type === 'tablet' ? 'small' : 'middle'}
+            items={[
+              {
+                key: 'overview',
+                label: (
+                  <span className={device.type === 'tablet' ? 'tablet-tab-label' : ''}>
+                    <DashboardOutlined className="mr-2" />
+                    {device.type !== 'tablet' && 'Overview'}
+                  </span>
+                ),
+                children: <EnhancedOverviewTab matchData={matchData} playerData={playerData} teamData={teamData} responsive={responsive} />
+              },
+              {
+                key: 'performance',
+                label: (
+                  <span className={device.type === 'tablet' ? 'tablet-tab-label' : ''}>
+                    <FireOutlined className="mr-2" />
+                    {device.type !== 'tablet' && 'Performance'}
+                  </span>
+                ),
+                children: <EnhancedPerformanceTab matchData={matchData} playerData={playerData} responsive={responsive} />
+              },
+              {
+                key: 'laning',
+                label: (
+                  <span className={device.type === 'tablet' ? 'tablet-tab-label' : ''}>
+                    <RiseOutlined className="mr-2" />
+                    {device.type !== 'tablet' && 'Laning Phase'}
+                  </span>
+                ),
+                children: <LaningPhaseTab playerData={playerData} responsive={responsive} />
+              },
+              {
+                key: 'economy',
+                label: (
+                  <span className={device.type === 'tablet' ? 'tablet-tab-label' : ''}>
+                    <ShoppingOutlined className="mr-2" />
+                    {device.type !== 'tablet' && 'Economy & Items'}
+                  </span>
+                ),
+                children: <EconomyResourcesTab matchData={matchData} playerData={playerData} responsive={responsive} />
+              },
+              {
+                key: 'combat',
+                label: (
+                  <span className={device.type === 'tablet' ? 'tablet-tab-label' : ''}>
+                    <AimOutlined className="mr-2" />
+                    {device.type !== 'tablet' && 'Combat Intel'}
+                  </span>
+                ),
+                children: <CombatIntelligenceTab matchData={matchData} playerData={playerData} teamData={teamData} responsive={responsive} />
+              },
+              {
+                key: 'vision',
+                label: (
+                  <span className={device.type === 'tablet' ? 'tablet-tab-label' : ''}>
+                    <EyeOutlined className="mr-2" />
+                    {device.type !== 'tablet' && 'Vision & Map'}
+                  </span>
+                ),
+                children: <VisionMapControlTab matchData={matchData} playerData={playerData} responsive={responsive} />
+              },
+              {
+                key: 'insights',
+                label: (
+                  <span className={device.type === 'tablet' ? 'tablet-tab-label' : ''}>
+                    <BulbOutlined className="mr-2" />
+                    {device.type !== 'tablet' && 'Insights'}
+                  </span>
+                ),
+                children: <ImprovementInsightsTab matchData={matchData} playerData={playerData} responsive={responsive} />
+              }
+            ]}
+          />
+        )}
       </Content>
     </Layout>
   );
@@ -918,7 +958,7 @@ const EnhancedPerformanceTab = ({ matchData, playerData }) => {
 };
 
 // Laning Phase Analysis Tab
-const LaningPhaseTab = ({ playerData }) => {
+const LaningPhaseTab = ({ playerData, responsive }) => {
   // Extract laning data (first 10 minutes)
   const laningData = useMemo(() => {
     if (!playerData) return { csData: [], xpData: [] };
@@ -974,27 +1014,35 @@ const LaningPhaseTab = ({ playerData }) => {
     return <Alert message="Player data not found in this match" type="warning" />;
   }
   
-  // CS/XP Line Chart Config
+  // Get responsive chart configurations
+  const chartConfig = responsive ? getResponsiveChartConfig(responsive.device, responsive.dimensions.optimalHeight) : {};
+  
+  // CS/XP Line Chart Config with responsive settings
   const csChartConfig = {
     data: laningData.csData,
     xField: 'time',
     yField: 'value',
     seriesField: 'type',
     smooth: true,
-    animation: {
+    height: chartConfig.height || 300,
+    animation: !responsive?.device.touchCapable ? {
       appear: {
         animation: 'path-in',
         duration: 1000,
       },
-    },
+    } : false,
     xAxis: {
       title: { text: 'Minutes' },
+      label: { style: { fontSize: chartConfig.fontSize || 12 } }
     },
     yAxis: {
       title: { text: 'Last Hits' },
+      label: { style: { fontSize: chartConfig.fontSize || 12 } }
     },
     theme: 'dark',
     color: [gamingColors.electric.cyan],
+    legend: chartConfig.legend !== false,
+    tooltip: chartConfig.tooltip || true,
   };
   
   const xpChartConfig = {
@@ -1002,65 +1050,88 @@ const LaningPhaseTab = ({ playerData }) => {
     xField: 'time',
     yField: 'value',
     smooth: true,
-    animation: {
+    height: chartConfig.height || 300,
+    animation: !responsive?.device.touchCapable ? {
       appear: {
         animation: 'path-in',
         duration: 1000,
       },
-    },
+    } : false,
     xAxis: {
       title: { text: 'Minutes' },
+      label: { style: { fontSize: chartConfig.fontSize || 12 } }
     },
     yAxis: {
       title: { text: 'Experience' },
+      label: { style: { fontSize: chartConfig.fontSize || 12 } }
     },
     theme: 'dark',
     color: gamingColors.electric.purple,
+    legend: chartConfig.legend !== false,
+    tooltip: chartConfig.tooltip || true,
   };
   
+  // Responsive grid configurations
+  const getColSpan = (desktop, tablet, mobile) => {
+    if (responsive?.device.type === 'mobile') return mobile;
+    if (responsive?.device.type === 'tablet') return tablet;
+    return desktop;
+  };
+
   return (
-    <Row gutter={[16, 16]}>
+    <Row gutter={responsive?.utils.getGridProps().gutter || [16, 16]} className={responsive?.utils.getResponsiveClass()}>
       {/* Lane Outcome Summary */}
       <Col span={24}>
         <Card 
-          title={<span className="uppercase text-white">LANE OUTCOME</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>LANE OUTCOME</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
           <div className="text-center">
             <Tag 
               color={laneOutcome.color} 
-              className="text-2xl px-8 py-4 mb-4"
-              style={{ fontSize: '24px' }}
+              className={responsive?.device.type === 'mobile' ? "text-lg px-4 py-2 mb-4" : "text-2xl px-8 py-4 mb-4"}
+              style={{ fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px' }}
             >
               LANE {laneOutcome.outcome}
             </Tag>
             <div>
-              <Text className="text-lg">{laneOutcome.description}</Text>
+              <Text className={responsive?.device.type === 'mobile' ? "text-base" : "text-lg"}>{laneOutcome.description}</Text>
             </div>
-            <Row gutter={16} className="mt-6">
-              <Col span={8}>
+            <Row gutter={responsive?.device.type === 'mobile' ? [8, 8] : [16, 16]} className="mt-6">
+              <Col span={getColSpan(8, 8, 24)}>
                 <Statistic
                   title="CS @ 10 min"
                   value={playerData.lh_t?.[9] || 0}
                   suffix={`/ ${playerData.dn_t?.[9] || 0} denies`}
-                  valueStyle={{ color: gamingColors.electric.cyan }}
+                  valueStyle={{ 
+                    color: gamingColors.electric.cyan,
+                    fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                  }}
                 />
               </Col>
-              <Col span={8}>
+              <Col span={getColSpan(8, 8, 12)}>
                 <Statistic
                   title="XP @ 10 min"
                   value={playerData.xp_t?.[9] || 0}
-                  valueStyle={{ color: gamingColors.electric.purple }}
+                  valueStyle={{ 
+                    color: gamingColors.electric.purple,
+                    fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                  }}
                 />
               </Col>
-              <Col span={8}>
+              <Col span={getColSpan(8, 8, 12)}>
                 <Statistic
                   title="Lane Deaths"
                   value={Array.isArray(playerData.life_state) 
                     ? playerData.life_state.slice(0, 600).filter(s => s === 2).length 
                     : 0}
-                  valueStyle={{ color: gamingColors.electric.red }}
+                  valueStyle={{ 
+                    color: gamingColors.electric.red,
+                    fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                  }}
                 />
               </Col>
             </Row>
@@ -1069,33 +1140,39 @@ const LaningPhaseTab = ({ playerData }) => {
       </Col>
       
       {/* CS Progression */}
-      <Col span={12}>
+      <Col span={getColSpan(12, 12, 24)}>
         <Card 
-          title={<span className="uppercase text-white">CS PROGRESSION</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>CS PROGRESSION</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
-          <Line {...csChartConfig} height={300} />
+          <Line {...csChartConfig} />
         </Card>
       </Col>
       
       {/* XP Progression */}
-      <Col span={12}>
+      <Col span={getColSpan(12, 12, 24)}>
         <Card 
-          title={<span className="uppercase text-white">XP PROGRESSION</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>XP PROGRESSION</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
-          <Line {...xpChartConfig} height={300} />
+          <Line {...xpChartConfig} />
         </Card>
       </Col>
       
       {/* Key Moments */}
       <Col span={24}>
         <Card 
-          title={<span className="uppercase text-white">KEY LANING MOMENTS</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>KEY LANING MOMENTS</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
           <Timeline>
             {playerData.kills_log?.filter(k => k.time < 600).map((kill, idx) => (
@@ -1184,7 +1261,7 @@ const LaningPhaseTab = ({ playerData }) => {
 };
 
 // Economy & Resources Tab Component
-const EconomyResourcesTab = ({ matchData, playerData }) => {
+const EconomyResourcesTab = ({ matchData, playerData, responsive }) => {
   // Calculate net worth progression
   const netWorthData = useMemo(() => {
     if (!playerData?.gold_t) return [];
@@ -1259,80 +1336,108 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
     playerData.backpack_2,
   ];
   
-  // Net worth line chart config
+  // Get responsive chart configurations
+  const chartConfig = responsive ? getResponsiveChartConfig(responsive.device, responsive.dimensions.optimalHeight) : {};
+  
+  // Net worth line chart config with responsive settings
   const netWorthChartConfig = {
     data: netWorthData,
     xField: 'time',
     yField: 'value',
     seriesField: 'type',
     smooth: true,
-    animation: {
+    height: chartConfig.height || 300,
+    animation: !responsive?.device.touchCapable ? {
       appear: {
         animation: 'path-in',
         duration: 1000,
       },
-    },
+    } : false,
     xAxis: {
       title: { text: 'Minutes' },
+      label: { style: { fontSize: chartConfig.fontSize || 12 } }
     },
     yAxis: {
       title: { text: 'Net Worth' },
+      label: { style: { fontSize: chartConfig.fontSize || 12 } }
     },
     theme: 'dark',
     color: [gamingColors.electric.yellow],
+    legend: chartConfig.legend !== false,
+    tooltip: chartConfig.tooltip || true,
   };
   
-  // Gold sources pie chart config
+  // Gold sources pie chart config with responsive settings
   const goldSourcesConfig = {
     data: goldSources,
     angleField: 'value',
     colorField: 'type',
-    radius: 0.8,
+    radius: responsive?.device.type === 'mobile' ? 0.7 : 0.8,
+    height: responsive?.device.type === 'mobile' ? 200 : 300,
     label: {
       type: 'inner',
       offset: '-30%',
       content: '{percentage}',
       style: {
-        fontSize: 14,
+        fontSize: responsive?.device.type === 'mobile' ? 10 : 14,
         textAlign: 'center',
       },
     },
     theme: 'dark',
     color: [gamingColors.electric.cyan, gamingColors.electric.red, gamingColors.electric.purple, gamingColors.electric.green],
+    legend: responsive?.device.type !== 'mobile',
+  };
+
+  // Responsive grid configurations
+  const getColSpan = (desktop, tablet, mobile) => {
+    if (responsive?.device.type === 'mobile') return mobile;
+    if (responsive?.device.type === 'tablet') return tablet;
+    return desktop;
   };
 
   return (
-    <Row gutter={[16, 16]}>
+    <Row gutter={responsive?.utils.getGridProps().gutter || [16, 16]} className={responsive?.utils.getResponsiveClass()}>
       {/* Net Worth Progression */}
       <Col span={24}>
         <Card 
-          title={<span className="uppercase text-white">NET WORTH PROGRESSION</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>NET WORTH PROGRESSION</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
-          <Line {...netWorthChartConfig} height={300} />
-          <Row gutter={16} className="mt-4">
-            <Col span={8}>
+          <Line {...netWorthChartConfig} />
+          <Row gutter={responsive?.device.type === 'mobile' ? [8, 8] : [16, 16]} className="mt-4">
+            <Col span={getColSpan(8, 8, 24)}>
               <Statistic
                 title="Final Net Worth"
                 value={playerData.net_worth}
                 prefix="$"
-                valueStyle={{ color: gamingColors.electric.yellow }}
+                valueStyle={{ 
+                  color: gamingColors.electric.yellow,
+                  fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                }}
               />
             </Col>
-            <Col span={8}>
+            <Col span={getColSpan(8, 8, 12)}>
               <Statistic
                 title="GPM"
                 value={playerData.gold_per_min}
-                valueStyle={{ color: gamingColors.electric.cyan }}
+                valueStyle={{ 
+                  color: gamingColors.electric.cyan,
+                  fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                }}
               />
             </Col>
-            <Col span={8}>
+            <Col span={getColSpan(8, 8, 12)}>
               <Statistic
                 title="Team Net Worth %"
                 value={Math.round(playerData.net_worth / matchData.players.filter(p => (p.player_slot < 128) === (playerData.player_slot < 128)).reduce((sum, p) => sum + p.net_worth, 0) * 100)}
                 suffix="%"
-                valueStyle={{ color: gamingColors.electric.purple }}
+                valueStyle={{ 
+                  color: gamingColors.electric.purple,
+                  fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                }}
               />
             </Col>
           </Row>
@@ -1340,21 +1445,26 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
       </Col>
       
       {/* Gold Sources */}
-      <Col span={12}>
+      <Col span={getColSpan(12, 12, 24)}>
         <Card 
-          title={<span className="uppercase text-white">GOLD SOURCES</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>GOLD SOURCES</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
-          <Pie {...goldSourcesConfig} height={300} />
+          <Pie {...goldSourcesConfig} />
           <List
             className="mt-4"
             dataSource={goldSources}
+            size={responsive?.content.list.size}
             renderItem={source => (
               <List.Item className="border-gray-700">
                 <div className="flex justify-between w-full">
-                  <Text>{source.type}</Text>
-                  <Text strong className="text-white">${source.value} ({source.percent}%)</Text>
+                  <Text style={{ fontSize: responsive?.device.type === 'mobile' ? '14px' : '16px' }}>{source.type}</Text>
+                  <Text strong className="text-white" style={{ fontSize: responsive?.device.type === 'mobile' ? '14px' : '16px' }}>
+                    ${source.value} ({source.percent}%)
+                  </Text>
                 </div>
               </List.Item>
             )}
@@ -1363,29 +1473,32 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
       </Col>
       
       {/* Item Timings */}
-      <Col span={12}>
+      <Col span={getColSpan(12, 12, 24)}>
         <Card 
-          title={<span className="uppercase text-white">ITEM TIMING ANALYSIS</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>ITEM TIMING ANALYSIS</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
           {keyItemTimings.length > 0 ? (
             <List
               dataSource={keyItemTimings}
+              size={responsive?.content.list.size}
               renderItem={item => (
                 <List.Item className="border-gray-700">
                   <div className="flex justify-between items-center w-full">
                     <div>
-                      <Text className="text-white">{item.name}</Text>
+                      <Text className="text-white" style={{ fontSize: responsive?.device.type === 'mobile' ? '14px' : '16px' }}>{item.name}</Text>
                       <Text type="secondary" className="block text-xs">
                         Benchmark: {item.benchmark} min
                       </Text>
                     </div>
                     <div className="text-right">
-                      <Text className="text-lg font-bold" style={{ color: item.color }}>
+                      <Text className={responsive?.device.type === 'mobile' ? "text-base font-bold" : "text-lg font-bold"} style={{ color: item.color }}>
                         {item.timing} min
                       </Text>
-                      <Tag color={item.efficiency === 'Fast' ? 'success' : 'warning'} className="ml-2">
+                      <Tag color={item.efficiency === 'Fast' ? 'success' : 'warning'} className="ml-2" size={responsive?.device.type === 'mobile' ? 'small' : 'default'}>
                         {item.efficiency}
                       </Tag>
                     </div>
@@ -1400,18 +1513,20 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
       </Col>
       
       {/* Final Build */}
-      <Col span={12}>
+      <Col span={getColSpan(12, 12, 24)}>
         <Card 
-          title={<span className="uppercase text-white">FINAL ITEM BUILD</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>FINAL ITEM BUILD</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className={responsive?.device.type === 'mobile' ? "grid grid-cols-2 gap-2 mb-4" : "grid grid-cols-3 gap-4 mb-4"}>
             {itemSlots.map((itemId, index) => (
               <div 
                 key={index}
-                className="bg-gray-900 rounded-lg p-4 border border-gray-700 flex items-center justify-center"
-                style={{ minHeight: '80px' }}
+                className={responsive?.device.type === 'mobile' ? "bg-gray-900 rounded-lg p-2 border border-gray-700 flex items-center justify-center" : "bg-gray-900 rounded-lg p-4 border border-gray-700 flex items-center justify-center"}
+                style={{ minHeight: responsive?.device.type === 'mobile' ? '60px' : '80px' }}
               >
                 {itemId ? (
                   <Tooltip title={`Item ${itemId}`}>
@@ -1430,12 +1545,12 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
           
           <Divider>Backpack</Divider>
           
-          <div className="grid grid-cols-3 gap-4">
+          <div className={responsive?.device.type === 'mobile' ? "grid grid-cols-2 gap-2" : "grid grid-cols-3 gap-4"}>
             {backpackItems.map((itemId, index) => (
               <div 
                 key={index}
-                className="bg-gray-900 rounded-lg p-3 border border-gray-700 flex items-center justify-center"
-                style={{ minHeight: '60px' }}
+                className={responsive?.device.type === 'mobile' ? "bg-gray-900 rounded-lg p-2 border border-gray-700 flex items-center justify-center" : "bg-gray-900 rounded-lg p-3 border border-gray-700 flex items-center justify-center"}
+                style={{ minHeight: responsive?.device.type === 'mobile' ? '50px' : '60px' }}
               >
                 {itemId ? (
                   <img 
@@ -1453,17 +1568,19 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
       </Col>
       
       {/* Resource Allocation */}
-      <Col span={12}>
+      <Col span={getColSpan(12, 12, 24)}>
         <Card 
-          title={<span className="uppercase text-white">RESOURCE ALLOCATION</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>RESOURCE ALLOCATION</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
-          <Row gutter={[16, 16]}>
+          <Row gutter={responsive?.device.type === 'mobile' ? [8, 8] : [16, 16]}>
             <Col span={12}>
-              <div className="text-center p-4 bg-gray-900/50 rounded-lg">
+              <div className={responsive?.device.type === 'mobile' ? "text-center p-2 bg-gray-900/50 rounded-lg" : "text-center p-4 bg-gray-900/50 rounded-lg"}>
                 <Text className="text-xs text-gray-400 block mb-2">Buybacks Used</Text>
-                <div className="text-2xl font-bold" style={{ color: gamingColors.electric.red }}>
+                <div className={responsive?.device.type === 'mobile' ? "text-xl font-bold" : "text-2xl font-bold"} style={{ color: gamingColors.electric.red }}>
                   {playerData.buyback_count || 0}
                 </div>
                 <Text type="secondary" className="text-xs">
@@ -1472,27 +1589,27 @@ const EconomyResourcesTab = ({ matchData, playerData }) => {
               </div>
             </Col>
             <Col span={12}>
-              <div className="text-center p-4 bg-gray-900/50 rounded-lg">
+              <div className={responsive?.device.type === 'mobile' ? "text-center p-2 bg-gray-900/50 rounded-lg" : "text-center p-4 bg-gray-900/50 rounded-lg"}>
                 <Text className="text-xs text-gray-400 block mb-2">Consumables</Text>
-                <div className="text-2xl font-bold" style={{ color: gamingColors.electric.green }}>
+                <div className={responsive?.device.type === 'mobile' ? "text-xl font-bold" : "text-2xl font-bold"} style={{ color: gamingColors.electric.green }}>
                   {playerData.purchase?.tango || 0} / {playerData.purchase?.flask || 0}
                 </div>
                 <Text type="secondary" className="text-xs">Tangos / Salves</Text>
               </div>
             </Col>
             <Col span={12}>
-              <div className="text-center p-4 bg-gray-900/50 rounded-lg">
+              <div className={responsive?.device.type === 'mobile' ? "text-center p-2 bg-gray-900/50 rounded-lg" : "text-center p-4 bg-gray-900/50 rounded-lg"}>
                 <Text className="text-xs text-gray-400 block mb-2">TPs Used</Text>
-                <div className="text-2xl font-bold" style={{ color: gamingColors.electric.cyan }}>
+                <div className={responsive?.device.type === 'mobile' ? "text-xl font-bold" : "text-2xl font-bold"} style={{ color: gamingColors.electric.cyan }}>
                   {playerData.purchase?.tpscroll || 0}
                 </div>
                 <Text type="secondary" className="text-xs">Scrolls</Text>
               </div>
             </Col>
             <Col span={12}>
-              <div className="text-center p-4 bg-gray-900/50 rounded-lg">
+              <div className={responsive?.device.type === 'mobile' ? "text-center p-2 bg-gray-900/50 rounded-lg" : "text-center p-4 bg-gray-900/50 rounded-lg"}>
                 <Text className="text-xs text-gray-400 block mb-2">Neutral Items</Text>
-                <div className="text-2xl font-bold" style={{ color: gamingColors.electric.purple }}>
+                <div className={responsive?.device.type === 'mobile' ? "text-xl font-bold" : "text-2xl font-bold"} style={{ color: gamingColors.electric.purple }}>
                   {playerData.item_neutral ? '✓' : '✗'}
                 </div>
                 <Text type="secondary" className="text-xs">
@@ -1657,7 +1774,7 @@ const GraphsTab = ({ matchData, teamData: TEAMDATA }) => {
 };
 
 // Combat Intelligence Tab Component
-const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
+const CombatIntelligenceTab = ({ matchData, playerData, teamData, responsive }) => {
   // Calculate teamfight impact
   const teamfightData = useMemo(() => {
     if (!playerData) return [];
@@ -1705,38 +1822,54 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
     { type: 'Creep Damage', value: (playerData.damage || 0) - (playerData.hero_damage || 0) - (playerData.tower_damage || 0) },
   ];
 
+  // Get responsive chart configurations  
+  const chartConfig = responsive ? getResponsiveChartConfig(responsive.device, responsive.dimensions.optimalHeight) : {};
+  
   const damageConfig = {
     data: damageData.filter(d => d.value > 0),
     angleField: 'value',
     colorField: 'type',
-    radius: 0.8,
+    radius: responsive?.device.type === 'mobile' ? 0.7 : 0.8,
+    height: responsive?.device.type === 'mobile' ? 200 : 300,
     label: {
       type: 'inner',
       offset: '-30%',
       content: '{percentage}',
       style: {
-        fontSize: 14,
+        fontSize: responsive?.device.type === 'mobile' ? 10 : 14,
         textAlign: 'center',
       },
     },
     theme: 'dark',
     color: [gamingColors.electric.red, gamingColors.electric.orange, gamingColors.electric.yellow],
+    legend: responsive?.device.type !== 'mobile',
+  };
+
+  // Responsive grid configurations
+  const getColSpan = (desktop, tablet, mobile) => {
+    if (responsive?.device.type === 'mobile') return mobile;
+    if (responsive?.device.type === 'tablet') return tablet;
+    return desktop;
   };
 
   return (
-    <Row gutter={[16, 16]}>
+    <Row gutter={responsive?.utils.getGridProps().gutter || [16, 16]} className={responsive?.utils.getResponsiveClass()}>
       {/* Teamfight Breakdown */}
       <Col span={24}>
         <Card 
-          title={<span className="uppercase text-white">TEAMFIGHT BREAKDOWN</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>TEAMFIGHT BREAKDOWN</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
           {teamfightData.length > 0 ? (
             <Table 
               dataSource={teamfightData}
               pagination={false}
               className="combat-table"
+              size={responsive?.content.table.size}
+              scroll={responsive?.content.table.scroll}
               columns={[
                 { title: 'Time', dataIndex: 'time', key: 'time' },
                 { title: 'Duration', dataIndex: 'duration', key: 'duration', render: (val) => `${val}s` },
@@ -1760,26 +1893,34 @@ const CombatIntelligenceTab = ({ matchData, playerData, teamData }) => {
       </Col>
       
       {/* Damage Distribution */}
-      <Col span={12}>
+      <Col span={getColSpan(12, 12, 24)}>
         <Card 
-          title={<span className="uppercase text-white">DAMAGE DISTRIBUTION</span>}
+          title={<span className={responsive?.device.type === 'mobile' ? "text-mobile-sm uppercase text-white" : "uppercase text-white"}>DAMAGE DISTRIBUTION</span>}
           className="bg-gray-800/50 border-gray-700"
           headStyle={{ borderBottom: '1px solid #374151' }}
+          size={responsive?.content.card.size}
+          bodyStyle={responsive?.content.card.bodyStyle}
         >
-          <Pie {...damageConfig} height={300} />
-          <Row gutter={16} className="mt-4">
-            <Col span={8}>
+          <Pie {...damageConfig} />
+          <Row gutter={responsive?.device.type === 'mobile' ? [8, 8] : [16, 16]} className="mt-4">
+            <Col span={getColSpan(8, 8, 24)}>
               <Statistic
                 title="Hero Damage"
                 value={playerData.hero_damage || 0}
-                valueStyle={{ color: gamingColors.electric.red }}
+                valueStyle={{ 
+                  color: gamingColors.electric.red,
+                  fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                }}
               />
             </Col>
-            <Col span={8}>
+            <Col span={getColSpan(8, 8, 12)}>
               <Statistic
                 title="Tower Damage"
                 value={playerData.tower_damage || 0}
-                valueStyle={{ color: gamingColors.electric.orange }}
+                valueStyle={{ 
+                  color: gamingColors.electric.orange,
+                  fontSize: responsive?.device.type === 'mobile' ? '18px' : '24px'
+                }}
               />
             </Col>
             <Col span={8}>

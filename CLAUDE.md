@@ -249,3 +249,7 @@ This integration provides the dashboard with comprehensive visual assets for all
 - **Affected Widgets**: SessionTrackerWidget, MMRProgressionWidget, HeroPerformanceWidget, RecentMatchesWidget, PerformanceMetricsWidget
 
 This change improves the visual density of the dashboard, allowing more content to be visible within each widget while maintaining readability and the professional gaming aesthetic.
+
+## Memories
+
+- Remember to run the linter if you've edited any file, to ensure there are no errors before moving on to the next task in the to do.
