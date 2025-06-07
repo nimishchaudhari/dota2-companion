@@ -97,10 +97,11 @@ import 'react-resizable/css/styles.css';
 ## Critical Implementation Details
 
 ### API Integration
-- OpenDota API rate limit: 60 requests/minute
+- OpenDota API rate limit: 60 requests/minute (free) / 60,000/hour (with API key)
 - Steam API requires `VITE_STEAM_API_KEY` in `.env.local`
 - All API calls use real data - no mocks in production
 - Heroes endpoint cached separately with longer TTL
+- Data fetching centralized in `DataContext.jsx` with automatic retry logic
 
 ### Widget Development Requirements
 1. Must use `useData()` hook from DataContext
@@ -108,9 +109,31 @@ import 'react-resizable/css/styles.css';
 3. Handle empty states with Ant Design Empty component
 4. Support responsive design across all breakpoints
 5. Add to `WIDGET_COMPONENTS` map in AntDashboard.jsx
+6. Wrap with `WidgetWrapper` for error boundaries and consistent styling
+
+### Authentication System
+- Dual-mode authentication: Development (Account ID) / Production (Steam OpenID)
+- Mode controlled by `VITE_AUTH_MODE` environment variable
+- Session persistence via localStorage with 24-hour TTL
+- Steam callback handled at `/auth/steam/callback` route
+- Development mode bypasses Steam for easier testing
+
+### Routing & Navigation
+- Simple client-side routing via `SimpleRouter` component in App.jsx
+- Special routes:
+  - `/auth/steam/callback` - Steam authentication callback handler
+  - `/asset-test` - Asset verification page (no auth required)
+  - All other routes go to main application
+- Navigation state managed in `AppContent` component
+- Match analysis accessible via `onMatchClick` callback system
+
+### Code Style & Linting
+- ESLint allows unused vars starting with uppercase (`^[A-Z_]`)
+- React 19 hooks rules strictly enforced - all hooks before conditional returns
+- No comments should be added unless explicitly requested
+- Prefer editing existing files over creating new ones
 
 ### Common Gotchas
-- ESLint allows unused vars starting with uppercase (`^[A-Z_]`)
 - Tailwind 4.x uses `@tailwindcss/postcss` plugin (not legacy `tailwindcss`)
 - Tests may fail with API 429 errors due to rate limiting
 - Bundle size warnings are expected (~2.7MB due to Ant Design + charts)
@@ -118,6 +141,7 @@ import 'react-resizable/css/styles.css';
 - Vite 6.x configuration may differ from earlier versions
 - **Asset URLs**: Always use `new URL(path, import.meta.url).href` for Vite asset compatibility
 - Use `/asset-test` route to debug asset loading issues
+- **CRITICAL**: Always run `npm run lint` after making changes to ensure code quality
 
 ### Testing Considerations
 - All tests use real OpenDota API data

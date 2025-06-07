@@ -950,7 +950,9 @@ const LaningPhaseTab = ({ playerData }) => {
     
     const lastHitsAt10 = playerData.lh_t?.[9] || 0;
     const xpAt10 = playerData.xp_t?.[9] || 0;
-    const deathsInLane = playerData.life_state?.slice(0, 600).filter(s => s === 2).length || 0;
+    const deathsInLane = Array.isArray(playerData.life_state) 
+      ? playerData.life_state.slice(0, 600).filter(s => s === 2).length 
+      : 0;
     
     let score = 0;
     if (lastHitsAt10 > 50) score += 2;
@@ -1055,7 +1057,9 @@ const LaningPhaseTab = ({ playerData }) => {
               <Col span={8}>
                 <Statistic
                   title="Lane Deaths"
-                  value={playerData.life_state?.slice(0, 600).filter(s => s === 2).length || 0}
+                  value={Array.isArray(playerData.life_state) 
+                    ? playerData.life_state.slice(0, 600).filter(s => s === 2).length 
+                    : 0}
                   valueStyle={{ color: gamingColors.electric.red }}
                 />
               </Col>

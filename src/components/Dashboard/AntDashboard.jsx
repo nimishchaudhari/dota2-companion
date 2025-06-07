@@ -143,7 +143,7 @@ const AntDashboard = ({ onMatchClick }) => {
     console.log('Refreshing widget:', widgetId);
     message.info(`Refreshing ${widgetId}...`);
     // In a real implementation, this would trigger specific data refresh
-  }, []);
+  }, [message]);
 
   const handleWidgetRemove = useCallback((widgetId) => {
     const newWidgets = activeWidgets.filter(id => id !== widgetId);
@@ -157,7 +157,7 @@ const AntDashboard = ({ onMatchClick }) => {
     setLayouts(newLayouts);
     
     message.success('Widget removed');
-  }, [activeWidgets, saveActiveWidgets, layouts]);
+  }, [activeWidgets, saveActiveWidgets, layouts, message]);
 
   const handleWidgetFullscreen = useCallback((widgetId) => {
     setFullscreenWidget(fullscreenWidget === widgetId ? null : widgetId);
@@ -190,14 +190,14 @@ const AntDashboard = ({ onMatchClick }) => {
     } else {
       message.info('Widget already on dashboard');
     }
-  }, [activeWidgets, saveActiveWidgets, layouts]);
+  }, [activeWidgets, saveActiveWidgets, layouts, message]);
 
   // Reset layout
   const handleResetLayout = useCallback(() => {
     setLayouts(defaultLayouts);
     saveActiveWidgets(['session-tracker', 'mmr-chart', 'hero-stats', 'recent-matches', 'performance-metrics']);
     message.success('Dashboard reset to default');
-  }, [saveActiveWidgets]);
+  }, [saveActiveWidgets, message]);
 
   // Save current layout as preset
   const handleSaveLayout = useCallback(() => {
@@ -209,7 +209,7 @@ const AntDashboard = ({ onMatchClick }) => {
     };
     localStorage.setItem(`dashboard-preset-${dashboardPreset}`, JSON.stringify(layoutData));
     message.success('Layout saved successfully');
-  }, [layouts, activeWidgets, dashboardPreset]);
+  }, [layouts, activeWidgets, dashboardPreset, message]);
 
   // Load preset
   const handlePresetChange = useCallback((preset) => {
@@ -222,13 +222,13 @@ const AntDashboard = ({ onMatchClick }) => {
       saveActiveWidgets(widgets);
       message.success(`Loaded ${preset} preset`);
     }
-  }, [saveActiveWidgets]);
+  }, [saveActiveWidgets, message]);
 
   // Export dashboard
   const handleExportDashboard = useCallback(() => {
     // Future: Export as image/PDF
     message.info('Export functionality coming soon');
-  }, []);
+  }, [message]);
 
   // Toggle dashboard fullscreen
   const toggleFullscreen = useCallback(() => {
